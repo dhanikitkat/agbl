@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Menu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        .container {
+            margin-top: 20px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .order-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .order-table th,
+        .order-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            position: relative;
+        }
+
+        .order-table th {
+            background-color: #f2f2f2;
+        }
+
+        .grand-total {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .nota-header {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .remove-buttons {
+            display: none;
+        }
+
+        @media screen and (max-width: 767px) {
+            .container {
+                padding: 0 10px;
+            }
+
+            .col-md-4 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+
+        /* Perubahan pada tombol dan teks kartu menu */
+        .card-title {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .card-text {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .add-to-order-button {
+            font-size: 14px;
+        }
+
+        .add-to-order-button i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2 class="nota-header">Menu</h2>
+        <div class="row" id="menuCards">
+            <!-- Menu cards will be added here dynamically -->
+        </div>
+        <h2 class="nota-header">Nota Pembayaran Ayam Gepuk Bu Leny</h2>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="customerName" class="form-label">Nama Customer:</label>
+                <input type="text" class="form-control" id="customerName" name="customerName" required>
+                <div class="invalid-feedback">Nama Customer harus diisi.</div>
+            </div>
+            <div class="col-md-6">
+                <label for="customerType" class="form-label">Jenis Customer:</label>
+                <select id="customerType" class="form-select" name="customerType" onchange="togglePabrikInput()"
+                    required>
+                    <option value="perorangan">Perorangan</option>
+                    <option value="pabrik">Pabrik</option>
+                </select>
+            </div>
+            <div class="col-md-6" id="pabrikLabel" style="display: none;">
+                <label for="pabrikName" class="form-label">Nama Pabrik:</label>
+                <input type="text" class="form-control" id="pabrikName" name="pabrikName" placeholder="Nama Pabrik">
+                <div class="invalid-feedback">Nama Pabrik harus diisi.</div>
+            </div>
+        </div>
+
+        <table class="table order-table">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Menu</th>
+                    <th>Harga</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="orderTable"></tbody>
+        </table>
+
+        <div class="grand-total" id="grandTotal"></div>
+
+        <div class="action-buttons">
+            <button class="btn btn-primary me-2" onclick="printNota()">Print Nota</button>
+            <button class="btn btn-success" onclick="sendOrderSummaryToWhatsApp()">Kirim ke WhatsApp</button>
+        </div>
+
+    </div>
+
+
+
+    <script>
+        const menuCards = document.getElementById('menuCards');
+        const orderTable = document.getElementById('orderTable');
+        const grandTotalDisplay = document.getElementById('grandTotal');
+        const customerNameInput = document.getElementById('customerName');
+        const customerTypeSelect = document.getElementById('customerType');
+        const pabrikNameInput = document.getElementById('pabrikName');
+
+        // Array to store orders
+        const orders = [];
+        let orderNumber = 1; // Initialize order number
+
+        // Function to create menu cards
+        function createMenuCards() {
+            const menuItems = [
+                { name: 'Paket Tatem Dada', price: 23000 },
+                { name: 'Paket Tatem Paha', price: 23000 },
+                { name: 'Nasi Ayam Dada', price: 20000 },
+                { name: 'Nasi Ayam Paha', price: 20000 },
+                { name: 'Ayam Paha', price: 17000 },
+                { name: 'Ayam Dada', price: 17000 },
+                { name: 'Tahu Tempe 1 Porsi', price: 7000 },
+                { name: 'Sayur Asem 1 Porsi', price: 7000 },
+                { name: 'Sayur Asem ½ Porsi', price: 4000 },
+                { name: 'Nasi', price: 4000 },
+                { name: 'Extra Sambal', price: 5000 },
+                { name: 'Es Teh Manis', price: 4000 },
+                { name: 'Tahu', price: 2000 },
+                { name: 'Tempe', price: 2000 },
+                { name: 'Kerupuk', price: 1000 },
+                // Add other menu items here
+            ];
+
+            menuItems.forEach(item => {
+                const card = document.createElement('div');
+                card.classList.add('col-md-4', 'mb-3');
+                card.innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">${item.name}</h5>
+                        <p class="card-text">Harga: Rp ${formatCurrency(item.price)}</p>
+                        <button class="btn btn-primary add-to-order-button" onclick="addToOrder('${item.name}', ${item.price})"><i class="fas fa-cart-plus"></i> Add to Order</button>
+                    </div>
+                </div>
+                `;
+                menuCards.appendChild(card);
+            });
+        }
+
+        // Function to toggle display of pabrik input based on customer type
+        function togglePabrikInput() {
+            const customerTypeSelect = document.getElementById('customerType');
+            const pabrikNameInput = document.getElementById('pabrikName');
+            const pabrikNameLabel = document.getElementById('pabrikLabel');
+            const customerType = customerTypeSelect.value;
+            if (customerType === 'pabrik') {
+                pabrikNameInput.style.display = 'block';
+                pabrikNameLabel.style.display = 'block';
+            } else {
+                pabrikNameInput.style.display = 'none';
+                pabrikNameInput.value = ''; // Clear the value when switching to 'perorangan'
+            }
+        }
+
+        // Function to add item to order
+        function addToOrder(name, price) {
+            const existingOrder = orders.find(order => order.name === name);
+            if (existingOrder) {
+                existingOrder.quantity++;
+            } else {
+                orders.push({ name, price, quantity: 1, orderNumber: orderNumber++ }); // Add order number
+            }
+            renderOrder();
+        }
+
+        // Function to render order table
+        function renderOrder() {
+            orderTable.innerHTML = '';
+            let total = 0;
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                <td>${order.orderNumber}</td>
+                <td>${order.name}</td>
+                <td>Rp ${formatCurrency(order.price)}</td>
+                <td>${order.quantity}</td>
+                <td>Rp ${formatCurrency(order.price * order.quantity)}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="decreaseQuantity('${order.name}')"><i class="fas fa-minus"></i></button>
+                    <button class="btn btn-sm btn-primary" onclick="increaseQuantity('${order.name}')"><i class="fas fa-plus"></i></button>
+                    <button class="btn btn-sm btn-danger mx-2" onclick="removeFromOrder('${order.name}')">Remove</button>
+                </td>
+                `;
+                orderTable.appendChild(row);
+                total += order.price * order.quantity;
+            });
+            const grandTotalRow = document.createElement('tr');
+            grandTotalRow.innerHTML = `
+                <td colspan="4"><b>Grand Total</b></td>
+                <td><b>Rp ${formatCurrency(total)}</b></td>
+                <td></td>
+            `;
+            orderTable.appendChild(grandTotalRow);
+            
+        }
+
+        // Function to remove item from order
+        function removeFromOrder(name) {
+            const index = orders.findIndex(order => order.name === name);
+            if (index !== -1) {
+                orders.splice(index, 1);
+                renderOrder();
+            }
+        }
+
+        // Function to decrease quantity
+        function decreaseQuantity(name) {
+            const order = orders.find(order => order.name === name);
+            if (order.quantity > 1) {
+                order.quantity--;
+                renderOrder();
+            }
+        }
+
+        // Function to increase quantity
+        function increaseQuantity(name) {
+            const order = orders.find(order => order.name === name);
+            order.quantity++;
+            renderOrder();
+        }
+
+        function printNota() {
+                // Tambahkan timestamp
+                const currentDate = new Date();
+
+                // Format tanggal sesuai keinginan
+                const formattedDate = currentDate.toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                // Format waktu sesuai keinginan
+                const formattedTime = currentDate.toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                // Gabungkan tanggal dan waktu dengan format yang diinginkan
+                const timestamp = `${formattedDate} ${formattedTime}`;
+
+
+                // Validate customer name
+                const customerName = document.getElementById('customerName').value.trim();
+                if (customerName === '') {
+                    document.getElementById('customerName').classList.add('is-invalid');
+                    return;
+                } else {
+                    document.getElementById('customerName').classList.remove('is-invalid');
+                }
+
+                // Validate pabrik name if applicable
+                const pabrikName = document.getElementById('pabrikName').value.trim();
+                if (document.getElementById('customerType').value === 'pabrik' && pabrikName === '') {
+                    document.getElementById('pabrikName').classList.add('is-invalid');
+                    return;
+                } else {
+                    document.getElementById('pabrikName').classList.remove('is-invalid');
+                }
+
+                // Validate menu selection
+                if (orders.length === 0) {
+                    alert('Minimal pilih satu menu.');
+                    return;
+                }
+                const total = calculateTotal(); // Calculate total
+                const customerType = customerTypeSelect.value === 'perorangan' ? 'Perorangan' : 'Pabrik ' + pabrikNameInput.value;
+                const notaContent = `
+<html>
+<head>
+    <title>Nota Pembayaran Ayam Gepuk Bu Leny</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm;
+        }
+        body{
+            font-family: 'Poppins', sans-serif; /* Menggunakan font Poppins */
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-family: 'Poppins', sans-serif; /* Menggunakan font Poppins */
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+            font-family: 'Poppins', sans-serif; /* Menggunakan font Poppins */
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .payment-info {
+            margin-top: 20px;
+            font-style: italic;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h2 class="nota-header">Nota Pembayaran Ayam Gepuk Bu Leny</h2>
+    <p>Nama Customer: ${customerNameInput.value}</p>
+    <p>${customerType}</p>
+    <p>Tanggal: ${timestamp}</p> <!-- Tambahkan timestamp di sini -->
+    <table>
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Menu</th>
+                <th>Harga</th>
+                <th>Quantity</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${getNotaContent()}
+        </tbody>
+    </table>
+    <div class="grand-total">${grandTotalDisplay.innerHTML}</div>
+    <div class="payment-info">
+        <p style="margin-bottom: 5px;">Pembayaran:</p>
+        <p>BNI a/n Muhammad Ramdhani : 0878898972</p>
+        <p>DANA/Gopay/Ovo/Shopeepay a/n Muhammad Ramdhani : 082210403837</p>
+    </div>
+</body>
+</html>
+`;
+
+                const newWindow = window.open('', '_blank');
+                newWindow.document.open();
+                newWindow.document.write(notaContent);
+                newWindow.document.close();
+
+                newWindow.onload = function () {
+                    newWindow.print();
+                };
+            }
+
+            // Function to get the content of selected columns
+            function getNotaContent() {
+                let content = '';
+                orders.forEach(order => {
+                    content += `
+    <tr>
+        <td>${order.orderNumber}</td>
+        <td>${order.name}</td>
+        <td>Rp ${formatCurrency(order.price)}</td>
+        <td>${order.quantity}</td>
+        <td>Rp ${formatCurrency(order.price * order.quantity)}</td>
+    </tr>
+`;
+                });
+
+                // Add Grand Total row
+                content += `
+<tr>
+    <td colspan="4"><b>Grand Total</b></td>
+    <td><b>Rp ${calculateTotal()}</b></td>
+</tr>
+`;
+
+                return content;
+            }
+
+        // Function to calculate total
+        function calculateTotal() {
+            let total = 0;
+            orders.forEach(order => {
+                total += order.price * order.quantity;
+            });
+            return formatCurrency(total);
+        }
+
+        function sendOrderSummaryToWhatsApp() {
+            // Validate customer name
+            const customerNamee = document.getElementById('customerName').value.trim();
+            if (customerNamee === '') {
+                document.getElementById('customerName').classList.add('is-invalid');
+                return;
+            } else {
+                document.getElementById('customerName').classList.remove('is-invalid');
+            }
+
+            // Validate pabrik name if applicable
+            const pabrikName = document.getElementById('pabrikName').value.trim();
+            if (document.getElementById('customerType').value === 'pabrik' && pabrikName === '') {
+                document.getElementById('pabrikName').classList.add('is-invalid');
+                return;
+            } else {
+                document.getElementById('pabrikName').classList.remove('is-invalid');
+            }
+
+            // Validate menu selection
+            if (orders.length === 0) {
+                alert('Minimal pilih satu menu.');
+                return;
+            }
+            const currentDate = new Date();
+
+            // Format tanggal sesuai keinginan
+            const formattedDate = currentDate.toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Format waktu sesuai keinginan
+            const formattedTime = currentDate.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            // Gabungkan tanggal dan waktu dengan format yang diinginkan
+            const timestamp = `${formattedDate} ${formattedTime}`;
+
+            // Ambil nilai dari elemen customerName
+            const customerName = document.getElementById('customerName').value;
+
+            // Ambil nilai dari customerType
+            const customerType = customerTypeSelect.value === 'perorangan' ? 'Perorangan' : 'Pabrik ' + pabrikNameInput.value;
+
+            // Hitung grand total menggunakan fungsi calculateTotal()
+            const grandTotal = calculateTotal();
+
+            let pesanan = ''; // String untuk menyimpan detail pesanan
+            orders.forEach((order, index) => {
+                pesanan += `${index + 1}. ${order.name} | Rp${formatCurrency(order.price)} | ${order.quantity}pcs | Rp${formatCurrency(order.price * order.quantity)}\n`;
+            });
+
+            // Format pesan WhatsApp
+            const message = `Nama Customer: *${customerName}*\n*${customerType}*\n*Tanggal: ${formattedDate}*\n*Jam: ${formattedTime}*\n\nPesanan:\n${pesanan}\n*Grand Total: Rp${grandTotal}*\n\n_Pembayaran:_\n_BNI a/n Muhammad Ramdhani : 0878898972_\n_DANA/Gopay/Ovo/Shopeepay a/n Muhammad Ramdhani : 082210403837_`;
+
+            // Nomor WhatsApp tujuan
+            const phoneNumber = '6282210403837';
+
+            // Redirect ke aplikasi WhatsApp dengan menggunakan URL scheme
+            window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
+        }
+
+        // Function to format currency without decimals
+        function formatCurrency(amount) {
+            return amount.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+        }
+
+        // Initialize menu cards
+        createMenuCards();
+    </script>
+
+</body>
+
+</html>
