@@ -14,73 +14,109 @@
             font-family: 'Poppins', sans-serif;
         }
 
-        .order-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-
-        .order-table th,
-        .order-table td {
+        .menu-item {
             border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-            position: relative;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-basis: 23%;
+            /* Menjadikan 4 card dalam satu baris di layar web */
         }
 
-        .order-table th {
-            background-color: #f2f2f2;
+        .menu-item .menu-details {
+            flex: 1;
         }
 
-        .grand-total {
-            margin-top: 20px;
-            font-weight: bold;
+        .menu-item .menu-description {
+            font-size: 12px;
+            /* Mengatur ukuran font deskripsi */
+            margin-bottom: 5px;
+            /* Menambahkan margin antara deskripsi dan harga */
+            margin-right: 5px;
         }
 
-        .nota-header {
-            text-align: center;
-            font-size: 24px;
-            margin-bottom: 20px;
+        .menu-item .menu-price {
+            font-size: 14px;
+        }
+
+        .menu-item .add-to-order-button {
+            font-size: 14px;
+        }
+
+        .menu-item .add-to-order-button i {
+            margin: 5px 0px 5px 0px;
+        }
+
+        /* Mengatur margin antar card */
+        #menuCards .menu-item {
+            margin-right: 10px;
         }
 
         .action-buttons {
             display: flex;
+            flex-direction: row;
+            /* Menata tombol menjadi tata letak horizontal */
             justify-content: center;
-            margin-top: 20px;
+            /* Memusatkan tombol secara horizontal */
         }
 
-        .remove-buttons {
-            display: none;
+        .action-buttons button {
+            margin-right: 10px;
+            /* Menambahkan jarak antara tombol */
         }
 
         @media screen and (max-width: 767px) {
-            .container {
-                padding: 0 10px;
+            .action-buttons {
+                flex-direction: column;
+                /* Menata tombol menjadi tata letak vertikal di perangkat seluler */
+                align-items: center;
+                /* Memusatkan tombol secara horizontal */
             }
 
-            .col-md-4 {
-                flex: 0 0 100%;
-                max-width: 100%;
+            .action-buttons button {
+                margin-right: 0;
+                margin-bottom: 5px;
+                /* Menghapus margin-right dan menambahkan margin-bottom untuk jarak antara tombol di perangkat seluler */
             }
-        }
 
-        /* Perubahan pada tombol dan teks kartu menu */
-        .card-title {
-            font-size: 16px;
-            margin-bottom: 5px;
-        }
+            .menu-item {
+                flex-direction: column;
+            }
 
-        .card-text {
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
+            .menu-details {
+                text-align: center;
+                margin-right: 0;
+                margin-top: 10px;
+            }
 
-        .add-to-order-button {
-            font-size: 14px;
-        }
+            .menu-title {
+                font-size: 14px;
+            }
 
-        .add-to-order-button i {
-            margin-right: 5px;
+            .menu-description {
+                font-size: 8px;
+                margin-right: 0px;
+            }
+
+            .menu-price {
+                font-size: 12px;
+            }
+
+            #menuCards {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            #menuCards .menu-item {
+                flex-basis: 40%;
+                /* Menjadikan dua card dalam satu baris di layar ponsel */
+                margin-bottom: 20px;
+                /* Menambahkan margin antar card di layar ponsel */
+            }
         }
     </style>
 </head>
@@ -88,7 +124,7 @@
 <body>
 
     <div class="container">
-        <h2 class="nota-header">Menu</h2>
+        <h2 class="nota-header text-center">Menu Ayam Gepuk Bu Leny</h2>
         <div class="row" id="menuCards">
             <!-- Menu cards will be added here dynamically -->
         </div>
@@ -117,12 +153,12 @@
         <table class="table order-table">
             <thead>
                 <tr>
-                    <th>No</th>
+                    <!-- <th>No</th> -->
                     <th>Menu</th>
                     <th>Harga</th>
-                    <th>Quantity</th>
+                    <th>Qty</th>
                     <th>Total</th>
-                    <th>Action</th>
+                    <th class="text-center">Action</th>
                 </tr>
             </thead>
             <tbody id="orderTable"></tbody>
@@ -136,8 +172,6 @@
         </div>
 
     </div>
-
-
 
     <script>
         const menuCards = document.getElementById('menuCards');
@@ -154,35 +188,35 @@
         // Function to create menu cards
         function createMenuCards() {
             const menuItems = [
-                { name: 'Paket Tatem Dada', price: 23000 },
-                { name: 'Paket Tatem Paha', price: 23000 },
-                { name: 'Nasi Ayam Dada', price: 20000 },
-                { name: 'Nasi Ayam Paha', price: 20000 },
-                { name: 'Ayam Paha', price: 17000 },
-                { name: 'Ayam Dada', price: 17000 },
-                { name: 'Tahu Tempe 1 Porsi', price: 7000 },
-                { name: 'Sayur Asem 1 Porsi', price: 7000 },
-                { name: 'Sayur Asem ½ Porsi', price: 4000 },
-                { name: 'Nasi', price: 4000 },
-                { name: 'Extra Sambal', price: 5000 },
-                { name: 'Es Teh Manis', price: 4000 },
+                { name: 'Nasi Tatem Dada', price: 23000, description: 'Nasi, Ayam Dada, Tahu, Tempe, Sambel, Lalap' },
+                { name: 'Nasi Tatem Paha', price: 23000, description: 'Nasi, Ayam Paha, Tahu, Tempe, Sambel, Lalap' },
+                { name: 'Nasi Ayam Dada', price: 20000, description: 'Nasi, Ayam Dada, Sambel, Lalap' },
+                { name: 'Nasi Ayam Paha', price: 20000, description: 'Nasi, Ayam Paha, Sambel, Lalap' },
+                { name: 'Ayam Dada', price: 17000, description: 'Ayam Dada, Sambel, Lalap' },
+                { name: 'Ayam Paha', price: 17000, description: 'Ayam Paha, Sambel, Lalap' },
+                { name: 'Paket Tatem', price: 7000, description: '2 Tahu, 2 Tempe, Sambel' },
+                { name: 'Nasi', price: 4000, description: 'Nasi 1 Porsi' },
+                { name: 'Extra Sambal Terasi', price: 5000, description: 'Sambal Terasi 1 Porsi' },
+                { name: 'Extra Sambal Gepuk', price: 5000, description: 'Sambal Gepuk 1 Porsi' },
+                { name: 'Sayur Asem 1 Porsi', price: 7000, description: 'Seporsi Sayur Asem' },
+                { name: 'Sayur Asem ½ Porsi', price: 4000, description: 'Setengah Porsi Sayur Asem' },
                 { name: 'Tahu', price: 2000 },
                 { name: 'Tempe', price: 2000 },
+                { name: 'Es Teh Manis', price: 4000 },
                 { name: 'Kerupuk', price: 1000 },
                 // Add other menu items here
             ];
 
             menuItems.forEach(item => {
                 const card = document.createElement('div');
-                card.classList.add('col-md-4', 'mb-3');
+                card.classList.add('menu-item', 'col-md-3', 'mb-3');
                 card.innerHTML = `
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">${item.name}</h5>
-                        <p class="card-text">Harga: Rp ${formatCurrency(item.price)}</p>
-                        <button class="btn btn-primary add-to-order-button" onclick="addToOrder('${item.name}', ${item.price})"><i class="fas fa-cart-plus"></i> Add to Order</button>
-                    </div>
+                <div class="menu-details">
+                    <h5 class="menu-title">${item.name}</h5>
+                    ${item.description ? `<p class="menu-description">${item.description}</p>` : ''}
+                    <p class="menu-price">Harga: Rp ${formatCurrency(item.price)}</p>
                 </div>
+                <button class="btn btn-primary add-to-order-button" onclick="addToOrder('${item.name}', ${item.price})"><i class="fas fa-cart-plus"></i></button>
                 `;
                 menuCards.appendChild(card);
             });
@@ -221,15 +255,17 @@
             orders.forEach(order => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                <td>${order.orderNumber}</td>
                 <td>${order.name}</td>
                 <td>Rp ${formatCurrency(order.price)}</td>
                 <td>${order.quantity}</td>
                 <td>Rp ${formatCurrency(order.price * order.quantity)}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="decreaseQuantity('${order.name}')"><i class="fas fa-minus"></i></button>
-                    <button class="btn btn-sm btn-primary" onclick="increaseQuantity('${order.name}')"><i class="fas fa-plus"></i></button>
-                    <button class="btn btn-sm btn-danger mx-2" onclick="removeFromOrder('${order.name}')">Remove</button>
+                   <div class="action-buttons">
+        <button class="btn btn-sm btn-primary" onclick="decreaseQuantity('${order.name}')"><i class="fas fa-minus"></i></button>
+        <button class="btn btn-sm btn-primary" onclick="increaseQuantity('${order.name}')"><i class="fas fa-plus"></i></button>
+        <button class="btn btn-sm btn-danger" onclick="removeFromOrder('${order.name}')"><i class="fas fa-trash"></i></button>
+
+    </div>
                 </td>
                 `;
                 orderTable.appendChild(row);
@@ -237,12 +273,12 @@
             });
             const grandTotalRow = document.createElement('tr');
             grandTotalRow.innerHTML = `
-                <td colspan="4"><b>Grand Total</b></td>
+                <td colspan="3"><b>Grand Total</b></td>
                 <td><b>Rp ${formatCurrency(total)}</b></td>
                 <td></td>
             `;
             orderTable.appendChild(grandTotalRow);
-            
+
         }
 
         // Function to remove item from order
@@ -271,53 +307,53 @@
         }
 
         function printNota() {
-                // Tambahkan timestamp
-                const currentDate = new Date();
+            // Tambahkan timestamp
+            const currentDate = new Date();
 
-                // Format tanggal sesuai keinginan
-                const formattedDate = currentDate.toLocaleDateString('id-ID', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
+            // Format tanggal sesuai keinginan
+            const formattedDate = currentDate.toLocaleDateString('id-ID', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
 
-                // Format waktu sesuai keinginan
-                const formattedTime = currentDate.toLocaleTimeString('id-ID', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                });
+            // Format waktu sesuai keinginan
+            const formattedTime = currentDate.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
 
-                // Gabungkan tanggal dan waktu dengan format yang diinginkan
-                const timestamp = `${formattedDate} ${formattedTime}`;
+            // Gabungkan tanggal dan waktu dengan format yang diinginkan
+            const timestamp = `${formattedDate} ${formattedTime}`;
 
 
-                // Validate customer name
-                const customerName = document.getElementById('customerName').value.trim();
-                if (customerName === '') {
-                    document.getElementById('customerName').classList.add('is-invalid');
-                    return;
-                } else {
-                    document.getElementById('customerName').classList.remove('is-invalid');
-                }
+            // Validate customer name
+            const customerName = document.getElementById('customerName').value.trim();
+            if (customerName === '') {
+                document.getElementById('customerName').classList.add('is-invalid');
+                return;
+            } else {
+                document.getElementById('customerName').classList.remove('is-invalid');
+            }
 
-                // Validate pabrik name if applicable
-                const pabrikName = document.getElementById('pabrikName').value.trim();
-                if (document.getElementById('customerType').value === 'pabrik' && pabrikName === '') {
-                    document.getElementById('pabrikName').classList.add('is-invalid');
-                    return;
-                } else {
-                    document.getElementById('pabrikName').classList.remove('is-invalid');
-                }
+            // Validate pabrik name if applicable
+            const pabrikName = document.getElementById('pabrikName').value.trim();
+            if (document.getElementById('customerType').value === 'pabrik' && pabrikName === '') {
+                document.getElementById('pabrikName').classList.add('is-invalid');
+                return;
+            } else {
+                document.getElementById('pabrikName').classList.remove('is-invalid');
+            }
 
-                // Validate menu selection
-                if (orders.length === 0) {
-                    alert('Minimal pilih satu menu.');
-                    return;
-                }
-                const total = calculateTotal(); // Calculate total
-                const customerType = customerTypeSelect.value === 'perorangan' ? 'Perorangan' : 'Pabrik ' + pabrikNameInput.value;
-                const notaContent = `
+            // Validate menu selection
+            if (orders.length === 0) {
+                alert('Minimal pilih satu menu.');
+                return;
+            }
+            const total = calculateTotal(); // Calculate total
+            const customerType = customerTypeSelect.value === 'perorangan' ? 'Perorangan' : 'Pabrik ' + pabrikNameInput.value;
+            const notaContent = `
 <html>
 <head>
     <title>Nota Pembayaran Ayam Gepuk Bu Leny</title>
@@ -352,16 +388,16 @@
 </head>
 <body>
     <h2 class="nota-header">Nota Pembayaran Ayam Gepuk Bu Leny</h2>
-    <p>Nama Customer: ${customerNameInput.value}</p>
-    <p>${customerType}</p>
+    <p>Nama Customer: <b>${customerNameInput.value}<b/></p>
+    <p><b>${customerType}</b></p>
     <p>Tanggal: ${timestamp}</p> <!-- Tambahkan timestamp di sini -->
     <table>
         <thead>
             <tr>
-                <th>No</th>
+                <th class="text-center">No</th>
                 <th>Menu</th>
                 <th>Harga</th>
-                <th>Quantity</th>
+                <th class="text-center">Quantity</th>
                 <th>Total</th>
             </tr>
         </thead>
@@ -379,41 +415,41 @@
 </html>
 `;
 
-                const newWindow = window.open('', '_blank');
-                newWindow.document.open();
-                newWindow.document.write(notaContent);
-                newWindow.document.close();
+            const newWindow = window.open('', '_blank');
+            newWindow.document.open();
+            newWindow.document.write(notaContent);
+            newWindow.document.close();
 
-                newWindow.onload = function () {
-                    newWindow.print();
-                };
-            }
+            newWindow.onload = function () {
+                newWindow.print();
+            };
+        }
 
-            // Function to get the content of selected columns
-            function getNotaContent() {
-                let content = '';
-                orders.forEach(order => {
-                    content += `
+        // Function to get the content of selected columns
+        function getNotaContent() {
+            let content = '';
+            orders.forEach(order => {
+                content += `
     <tr>
-        <td>${order.orderNumber}</td>
+        <td class="text-center">${order.orderNumber}</td>
         <td>${order.name}</td>
         <td>Rp ${formatCurrency(order.price)}</td>
-        <td>${order.quantity}</td>
+        <td class="text-center">${order.quantity}</td>
         <td>Rp ${formatCurrency(order.price * order.quantity)}</td>
     </tr>
 `;
-                });
+            });
 
-                // Add Grand Total row
-                content += `
+            // Add Grand Total row
+            content += `
 <tr>
     <td colspan="4"><b>Grand Total</b></td>
     <td><b>Rp ${calculateTotal()}</b></td>
 </tr>
 `;
 
-                return content;
-            }
+            return content;
+        }
 
         // Function to calculate total
         function calculateTotal() {
@@ -426,8 +462,8 @@
 
         function sendOrderSummaryToWhatsApp() {
             // Validate customer name
-            const customerNamee = document.getElementById('customerName').value.trim();
-            if (customerNamee === '') {
+            const customerName = document.getElementById('customerName').value.trim();
+            if (customerName === '') {
                 document.getElementById('customerName').classList.add('is-invalid');
                 return;
             } else {
@@ -467,11 +503,8 @@
             // Gabungkan tanggal dan waktu dengan format yang diinginkan
             const timestamp = `${formattedDate} ${formattedTime}`;
 
-            // Ambil nilai dari elemen customerName
-            const customerName = document.getElementById('customerName').value;
-
             // Ambil nilai dari customerType
-            const customerType = customerTypeSelect.value === 'perorangan' ? 'Perorangan' : 'Pabrik ' + pabrikNameInput.value;
+            const customerType = customerTypeSelect.value === 'perorangan' ? 'Perorangan' : 'Pabrik ' + pabrikNameInput.value.trim();
 
             // Hitung grand total menggunakan fungsi calculateTotal()
             const grandTotal = calculateTotal();
@@ -482,7 +515,7 @@
             });
 
             // Format pesan WhatsApp
-            const message = `Nama Customer: *${customerName}*\n*${customerType}*\n*Tanggal: ${formattedDate}*\n*Jam: ${formattedTime}*\n\nPesanan:\n${pesanan}\n*Grand Total: Rp${grandTotal}*\n\n_Pembayaran:_\n_BNI a/n Muhammad Ramdhani : 0878898972_\n_DANA/Gopay/Ovo/Shopeepay a/n Muhammad Ramdhani : 082210403837_`;
+            const message = `Nama Customer: *${customerName}*\n*${customerType}*\n*Tanggal: ${formattedDate}*\n*Jam: ${formattedTime}*\n\nPesanan:\n${pesanan}\n*Grand Total: Rp${grandTotal}*\n\n*_Pembayaran:_*\n_*BNI* a/n Muhammad Ramdhani : *0878898972*_\n_*DANA/Gopay/Ovo/Shopeepay* a/n Muhammad Ramdhani : *082210403837*_`;
 
             // Nomor WhatsApp tujuan
             const phoneNumber = '6282210403837';
