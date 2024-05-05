@@ -69,6 +69,40 @@
             /* Menambahkan jarak antara tombol */
         }
 
+        /* Floating scroll down button */
+        .scroll-down-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .scroll-down-button a {
+            background-color: #fff;
+            color: transparent;
+            padding: 15px;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        .scroll-down-button a i {
+            color: #000; /* Icon color */
+            font-size: 24px; /* Icon size */
+        }
+
+        .scroll-down-button a:hover {
+            background-color: rgba(255, 255, 255, 0.8); /* Hover background color */
+        }
+
+        .scroll-down-button.hide {
+            transform: translateY(100px);
+        }
         @media screen and (max-width: 767px) {
             .action-buttons {
                 flex-direction: column;
@@ -126,10 +160,10 @@
 
     <div class="container">
         <h2 class="nota-header text-center">Menu Ayam Gepuk Bu Leny</h2>
-        <div class="row" id="menuCards">
+        <div class="row d-flex justify-content-center" id="menuCards">
             <!-- Menu cards will be added here dynamically -->
         </div>
-        <h2 class="nota-header">Nota Pembayaran Ayam Gepuk Bu Leny</h2>
+        <h2 class="nota-header text-center">Nota Pembayaran Ayam Gepuk Bu Leny</h2>
         <div class="row mb-3">
             <div class="col-md-6">
                 <label for="customerName" class="form-label">Nama Customer:</label>
@@ -170,6 +204,12 @@
         <div class="action-buttons">
             <button class="btn btn-primary me-2" onclick="printNota()">Print Nota</button>
             <button class="btn btn-success" onclick="sendOrderSummaryToWhatsApp()">Kirim ke WhatsApp</button>
+        </div>
+        <!-- Floating scroll down button -->
+        <div class="scroll-down-button" id="scrollDownButton">
+            <a href="javascript:void(0);" onclick="scrollToBottom()">
+                <i class="fas fa-chevron-circle-down"></i> <!-- Font Awesome Chevron Down icon -->
+            </a>
         </div>
 
     </div>
@@ -534,6 +574,30 @@
 
         // Initialize menu cards
         createMenuCards();
+
+        // Function to scroll to the bottom of the page
+            function scrollToBottom() {
+                window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+
+    // Function to show/hide the floating button when scrolling
+        window.onscroll = function () {
+            var scrollDownButton = document.getElementById("scrollDownButton");
+            var customerNameInput = document.getElementById("customerName");
+            var customerNameRect = customerNameInput.getBoundingClientRect();
+            var hasScrollableContent = document.documentElement.scrollHeight > window.innerHeight;
+
+            if (hasScrollableContent && customerNameRect.top < window.innerHeight && customerNameRect.bottom > 0) {
+                scrollDownButton.classList.add('hide');
+            } else {
+                scrollDownButton.classList.remove('hide');
+            }
+        };
+
+
     </script>
 
 </body>
