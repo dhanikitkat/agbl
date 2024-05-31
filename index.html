@@ -15,16 +15,20 @@
         }
 
         .menu-item {
-    background-color: #ffffff; /* Warna latar belakang putih */
-    border: 1px solid #adb5bd; /* Border abu-abu */
-    border-radius: 5px;
-    margin-bottom: 20px; /* Menambahkan jarak antara setiap kartu */
-    padding: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-basis: 23%; /* Menjadikan 4 card dalam satu baris di layar web */
-}
+            background-color: #ffffff;
+            /* Warna latar belakang putih */
+            border: 1px solid #adb5bd;
+            /* Border abu-abu */
+            border-radius: 5px;
+            margin-bottom: 20px;
+            /* Menambahkan jarak antara setiap kartu */
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-basis: 23%;
+            /* Menjadikan 4 card dalam satu baris di layar web */
+        }
 
 
         .menu-item .menu-details {
@@ -92,17 +96,21 @@
         }
 
         .scroll-down-button a i {
-            color: #000; /* Icon color */
-            font-size: 24px; /* Icon size */
+            color: #000;
+            /* Icon color */
+            font-size: 24px;
+            /* Icon size */
         }
 
         .scroll-down-button a:hover {
-            background-color: rgba(255, 255, 255, 0.8); /* Hover background color */
+            background-color: rgba(255, 255, 255, 0.8);
+            /* Hover background color */
         }
 
         .scroll-down-button.hide {
             transform: translateY(100px);
         }
+
         @media screen and (max-width: 767px) {
             .action-buttons {
                 flex-direction: column;
@@ -239,6 +247,7 @@
                 { name: 'Ayam Paha', price: 17000, description: 'Ayam Paha, Sambel, Lalap' },
                 { name: 'Paket Tatem', price: 7000, description: '2 Tahu, 2 Tempe, Sambel' },
                 { name: 'Nasi', price: 4000, description: 'Nasi 1 Porsi' },
+                { name: 'Nasi ½ Porsi', price: 3000, description: 'Nasi ½ Porsi' },
                 { name: 'Extra Sambal Terasi', price: 5000, description: 'Sambal Terasi 1 Porsi' },
                 { name: 'Extra Sambal Gepuk', price: 5000, description: 'Sambal Gepuk 1 Porsi' },
                 { name: 'Sayur Asem 1 Porsi', price: 7000, description: 'Seporsi Sayur Asem' },
@@ -558,7 +567,7 @@
             });
 
             // Format pesan WhatsApp
-            const message = `Nama Customer: *${customerName}*\n*${customerType}*\n*Tanggal: ${formattedDate}*\n*Jam: ${formattedTime}*\n\nPesanan:\n${pesanan}\n*Grand Total: Rp${grandTotal}*\n\n*_Pembayaran:_*\n_*BNI* a/n Muhammad Ramdhani : *0878898972*_\n_*DANA/Gopay/Shopeepay* a/n Muhammad Ramdhani : *082210403837*_`;
+            const message = `Nama Customer: *${customerName}*\n*${customerType}*\n*Tanggal: ${formattedDate}*\n*Jam: ${formattedTime}*\n\nPesanan:\n${pesanan}\n*Grand Total: Rp${grandTotal}*\n\n*_Pembayaran:_*\n_*BNI* a/n Muhammad Ramdhani : *0878898972*_\n_*DANA/Gopay/Ovo/Shopeepay* a/n Muhammad Ramdhani : *082210403837*_`;
 
             // Nomor WhatsApp tujuan
             const phoneNumber = '6282210403837';
@@ -576,14 +585,14 @@
         createMenuCards();
 
         // Function to scroll to the bottom of the page
-            function scrollToBottom() {
-                window.scrollTo({
-                    top: document.body.scrollHeight,
-                    behavior: 'smooth'
-                });
-            }
+        function scrollToBottom() {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
 
-    // Function to show/hide the floating button when scrolling
+        // Function to show/hide the floating button when scrolling
         window.onscroll = function () {
             var scrollDownButton = document.getElementById("scrollDownButton");
             var customerNameInput = document.getElementById("customerName");
