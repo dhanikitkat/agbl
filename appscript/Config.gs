@@ -25,11 +25,12 @@ var APP_CONFIG = {
     ['rek_jago', 'Bank Jago 1234567890 (a/n. M Ramdhani)'],
     ['qris_url', 'https://drive.google.com/file/d/1kyqPGE6N7z-nYONurZBxQxeKikfR0pZS/view'],
     ['wa_number', '6282210403837'],
-    // Folder Drive berisi foto menu (isi ID saja, atau pakai menu_photos_folder_url)
-    ['menu_photos_folder_id', ''],
-    ['menu_photos_folder_url', ''],
+    // Folder Drive foto/logo — bisa diganti di sheet Settings
+    ['menu_photos_folder_id', '1FO1qFwt0zzeCLzt_wSydaDlzV2TeI9ax'],
+    ['menu_photos_folder_url', 'https://drive.google.com/drive/folders/1FO1qFwt0zzeCLzt_wSydaDlzV2TeI9ax'],
     // Base URL website (GitHub Pages) agar path assets/menu/... tetap jalan saat UI di-host Apps Script
     ['menu_photos_base_url', ''],
+    ['spreadsheet_id', '11rRX_69jGmqu7AgKJod7yx1XXh1FvAMy8QZU149NSoY'],
     ['settings_version', '1']
   ],
   DEFAULT_MENU: [

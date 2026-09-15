@@ -28,10 +28,17 @@ function setupWorkbook() {
 
     // Pastikan key settings foto ada
     var settingsMap = getSettingsMap_();
-    if (!('menu_photos_folder_id' in settingsMap)) setSetting_('menu_photos_folder_id', '');
-    if (!('menu_photos_folder_url' in settingsMap)) setSetting_('menu_photos_folder_url', '');
+    if (!('menu_photos_folder_id' in settingsMap) || !settingsMap.menu_photos_folder_id) {
+      setSetting_('menu_photos_folder_id', '1FO1qFwt0zzeCLzt_wSydaDlzV2TeI9ax');
+    }
+    if (!('menu_photos_folder_url' in settingsMap) || !settingsMap.menu_photos_folder_url) {
+      setSetting_('menu_photos_folder_url', 'https://drive.google.com/drive/folders/1FO1qFwt0zzeCLzt_wSydaDlzV2TeI9ax');
+    }
     if (!('menu_photos_base_url' in settingsMap)) setSetting_('menu_photos_base_url', '');
     if (!('logo_url' in settingsMap)) setSetting_('logo_url', 'assets/brand/logo.jpg');
+    if (!('spreadsheet_id' in settingsMap)) {
+      setSetting_('spreadsheet_id', '11rRX_69jGmqu7AgKJod7yx1XXh1FvAMy8QZU149NSoY');
+    }
 
     // Orders
     getOrCreateSheet_(APP_CONFIG.SHEETS.ORDERS, [

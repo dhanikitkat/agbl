@@ -52,22 +52,29 @@ function mapMenuRow_(r) {
 }
 
 /**
+ * Ambil folder ID dari Settings (folder_id atau parse dari URL).
+ * Bisa diganti kapan saja di sheet Settings.
+ */
+function resolvePhotosFolderId_() {
+  var map = getSettingsMap_();
+  var folderId = String(map.menu_photos_folder_id || '').trim();
+  if (folderId) return folderId;
+  var folderUrl = String(map.menu_photos_folder_url || '').trim();
+  var fm = folderUrl.match(/\/folders\/([^/?]+)/);
+  return fm ? fm[1] : '';
+}
+
+/**
  * Sync foto dari folder Drive ke kolom Menu.image_url.
  * Nama file disarankan: m01.jpg, m02.webp, dst (pakai id menu).
  * Juga cocok jika nama file = nama menu (spasi jadi - atau _).
+ * Jika ada logo.jpg / logo.png / logo.webp di folder → isi Settings.logo_url.
  */
 function syncMenuPhotosFromDrive() {
   return withScriptLock_(function () {
-    var map = getSettingsMap_();
-    var folderId = String(map.menu_photos_folder_id || '').trim();
+    var folderId = resolvePhotosFolderId_();
     if (!folderId) {
-      // Izinkan paste full folder URL
-      var folderUrl = String(map.menu_photos_folder_url || '').trim();
-      var fm = folderUrl.match(/\/folders\/([^/?]+)/);
-      if (fm) folderId = fm[1];
-    }
-    if (!folderId) {
-      throw new Error('Isi Settings.menu_photos_folder_id (ID folder Drive) dulu.');
+      throw new Error('Isi Settings.menu_photos_folder_id atau menu_photos_folder_url dulu.');
     }
 
     var folder = DriveApp.getFolderById(folderId);
@@ -78,8 +85,7 @@ function syncMenuPhotosFromDrive() {
       var name = file.getName();
       var base = name.replace(/\.[^.]+$/, '').toLowerCase();
       var mime = file.getMimeType() || '';
-      if (mime.indexOf('image/') !== 0 && !/\.(jpe?g|png|webp|gif)$/i.test(name)) continue;
-      // Share-ish: pastikan bisa diakses via link (owner tetap bisa set manually)
+      if (mime.indexOf('image/') !== 0 && !/\.(jpe?g|png|webp|gif|svg)$/i.test(name)) continue;
       try {
         file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       } catch (e) {
@@ -110,13 +116,27 @@ function syncMenuPhotosFromDrive() {
       updated += 1;
     });
 
+    // Auto-set logo dari folder jika ada
+    var logoUrl = byBase.logo || byBase['logo-agbl'] || byBase['ayam-gepuk-bu-leny'];
+    if (logoUrl) {
+      setSetting_('logo_url', logoUrl);
+    }
+
+    // Simpan folder id yang terpakai (supaya jelas di Settings)
+    setSetting_('menu_photos_folder_id', folderId);
+    if (!getSettingsMap_().menu_photos_folder_url) {
+      setSetting_('menu_photos_folder_url', 'https://drive.google.com/drive/folders/' + folderId);
+    }
+
     bumpSettingsVersion_();
     return {
       ok: true,
       folder: folder.getName(),
+      folder_id: folderId,
       matched: updated,
+      logo_updated: !!logoUrl,
       files_found: Object.keys(byBase).length,
-      message: 'Sync selesai: ' + updated + ' menu terisi foto dari folder.'
+      message: 'Sync selesai: ' + updated + ' menu' + (logoUrl ? ' + logo' : '') + ' dari folder Drive.'
     };
   });
 }

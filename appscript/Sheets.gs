@@ -129,6 +129,7 @@ function publicSettings_() {
     menu_photos_folder_id: map.menu_photos_folder_id || '',
     menu_photos_folder_url: map.menu_photos_folder_url || '',
     menu_photos_base_url: map.menu_photos_base_url || '',
+    spreadsheet_id: map.spreadsheet_id || '',
     settings_version: map.settings_version || '1'
   };
 }
