@@ -199,11 +199,15 @@
       return;
     }
 
+    if (!(window.APP_CONFIG && window.APP_CONFIG.SCRIPT_URL) && !(window.SCRIPT_URL && String(window.SCRIPT_URL).indexOf('script.google') !== -1)) {
+      done('Belum terhubung ke Apps Script. Print/WA tetap bisa. Lihat docs/SETUP.md', 'warn');
+      return;
+    }
+
     AGBL.api('createOrder', payload).then(function (res) {
       if (!res.ok) throw new Error(res.error || 'Gagal simpan');
       if (res.duplicate) done('Pesanan sudah tercatat sebelumnya.', 'warn');
       else done('Tersimpan: ' + res.order_id, 'ok');
-      // Keep same idempotency if user retries immediately after success? new key next time
     }).catch(function (err) {
       AGBL.enqueueOrder(payload);
       done((err && err.message) || 'Gagal online. Disimpan ke antrean offline.', 'warn');
