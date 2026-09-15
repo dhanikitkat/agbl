@@ -13,7 +13,9 @@ var APP_CONFIG = {
     SETTINGS: 'Settings',
     MENU: 'Menu',
     ORDERS: 'Orders',
-    USERS: 'Users'
+    USERS: 'Users',
+    VARIANT_GROUPS: 'VariantGroups',
+    VARIANT_OPTIONS: 'VariantOptions'
   },
   DEFAULT_SETTINGS: [
     ['setting_key', 'setting_value'],
@@ -25,13 +27,29 @@ var APP_CONFIG = {
     ['rek_jago', 'Bank Jago 1234567890 (a/n. M Ramdhani)'],
     ['qris_url', 'https://drive.google.com/file/d/1kyqPGE6N7z-nYONurZBxQxeKikfR0pZS/view'],
     ['wa_number', '6282210403837'],
-    // Folder Drive foto/logo — bisa diganti di sheet Settings
+    // Email opsional: nota & ucapan terima kasih
+    ['notify_email', ''],
+    ['email_subject_prefix', 'Nota'],
+    ['email_thankyou_text', 'Terima kasih sudah pesan di Ayam Gepuk Bu Leny. Selamat menikmati!'],
     ['menu_photos_folder_id', '1FO1qFwt0zzeCLzt_wSydaDlzV2TeI9ax'],
     ['menu_photos_folder_url', 'https://drive.google.com/drive/folders/1FO1qFwt0zzeCLzt_wSydaDlzV2TeI9ax'],
-    // Base URL website (GitHub Pages) agar path assets/menu/... tetap jalan saat UI di-host Apps Script
     ['menu_photos_base_url', ''],
     ['spreadsheet_id', '11rRX_69jGmqu7AgKJod7yx1XXh1FvAMy8QZU149NSoY'],
     ['settings_version', '1']
+  ],
+  // menu_ids: daftar id menu yang pakai group ini (koma). * = semua
+  DEFAULT_VARIANT_GROUPS: [
+    ['id', 'menu_ids', 'label', 'selection_type', 'min_select', 'max_select', 'required', 'active', 'sort_order'],
+    ['g_sambel', 'm01,m02,m03,m04,m05,m06', 'Pilih Sambel', 'single', 1, 1, 'TRUE', 'TRUE', 1],
+    ['g_extra_sambel', 'm01,m02,m03,m04,m05,m06', 'Extra Sambel', 'multi', 0, 2, 'FALSE', 'TRUE', 2]
+  ],
+  DEFAULT_VARIANT_OPTIONS: [
+    ['id', 'group_id', 'label', 'price_delta', 'excludes', 'active', 'sort_order'],
+    ['opt_terasi', 'g_sambel', 'Sambel Terasi', 0, '', 'TRUE', 1],
+    ['opt_gepuk', 'g_sambel', 'Sambel Gepuk', 0, '', 'TRUE', 2],
+    ['opt_x_terasi', 'g_extra_sambel', 'Extra Sambel Terasi', 5000, 'opt_x_matah', 'TRUE', 1],
+    ['opt_x_gepuk', 'g_extra_sambel', 'Extra Sambel Gepuk', 5000, '', 'TRUE', 2],
+    ['opt_x_matah', 'g_extra_sambel', 'Sambel Matah', 5000, 'opt_x_terasi', 'TRUE', 3]
   ],
   DEFAULT_MENU: [
     ['id', 'name', 'description', 'price', 'active', 'sort_order', 'image_url'],

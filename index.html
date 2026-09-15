@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Order Menu · Ayam Gepuk Bu Leny</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,13 +10,13 @@
   <link rel="stylesheet" href="web/css/app.css">
 </head>
 <body>
-  <div class="app-shell">
+  <div class="app-shell" id="appShell">
     <div class="topbar">
       <div class="brand-block">
         <img class="brand-logo" id="storeLogo" src="assets/brand/logo.jpg" alt="Logo Ayam Gepuk Bu Leny" width="96" height="96">
         <div class="brand-copy">
           <h1 class="brand-name" id="storeName">Ayam Gepuk Bu Leny</h1>
-          <p class="brand-sub">Pesan cepat · Nota & WhatsApp siap kirim</p>
+          <p class="brand-sub">Pesan enak · Sambel sesuai selera</p>
         </div>
       </div>
       <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
@@ -31,70 +31,103 @@
     </div>
 
     <div class="sync-banner" id="syncBanner"></div>
-    <p class="hero-note">Pilih menu, isi nama, lalu print nota atau kirim WhatsApp. Data toko & QRIS diambil dari Google Sheets (cache offline tersedia).</p>
+    <p class="hero-note">Pilih menu, atur sambel, lalu checkout lewat keranjang. Kirim WhatsApp dulu — email nota opsional.</p>
 
     <h2 class="section-title">Menu</h2>
     <div class="menu-grid" id="menuCards"></div>
+  </div>
 
-    <section class="panel" id="orderPanel">
-      <h2 class="section-title">Nota Pesanan</h2>
-      <div class="form-grid">
-        <label>
-          Nama Customer
-          <input type="text" id="customerName" autocomplete="name" required>
-          <span class="hint">Nama customer harus diisi.</span>
-        </label>
-        <label>
-          Jenis Customer
-          <select id="customerType">
-            <option value="perorangan">Perorangan</option>
-            <option value="pabrik">Pabrik</option>
-          </select>
-        </label>
-        <label id="pabrikField" class="hidden">
-          Nama Pabrik
-          <input type="text" id="pabrikName" placeholder="Nama pabrik">
-          <span class="hint">Nama pabrik harus diisi.</span>
-        </label>
-      </div>
+  <!-- Floating cart -->
+  <button type="button" class="cart-fab" id="cartFab" aria-label="Buka keranjang">
+    <span class="cart-fab-badge" id="cartCount">0</span>
+    <span class="cart-fab-meta">
+      <strong id="cartFabTotal">Rp 0</strong>
+      <span id="cartFabHint">Lihat keranjang</span>
+    </span>
+    <span class="cart-fab-cta">Checkout →</span>
+  </button>
 
-      <div style="overflow-x:auto;">
-        <table class="order-table">
-          <thead>
-            <tr>
-              <th>Menu</th>
-              <th>Harga</th>
-              <th>Qty</th>
-              <th>Total</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody id="orderTable"></tbody>
-        </table>
-      </div>
-      <div class="empty" id="emptyOrder">Belum ada item. Tambahkan dari menu di atas.</div>
-      <div class="grand-total">
-        <span>Grand Total</span>
-        <span id="grandTotal">Rp 0</span>
-      </div>
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
 
-      <div class="payment-box" id="paymentBox">
-        <h4>Pembayaran</h4>
-        <div id="paymentLines"></div>
-        <div class="qris-wrap hidden" id="qrisWrap">
-          <img id="qrisImage" alt="QRIS" loading="lazy">
-          <p style="margin-top:.4rem;color:var(--muted);font-size:.8rem;">Scan QRIS</p>
+  <!-- Cart / checkout sheet -->
+  <section class="sheet" id="cartSheet" aria-hidden="true">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Keranjang</h2>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnCloseCart">Tutup</button>
+    </div>
+    <div class="sheet-body">
+      <div id="cartLines"></div>
+      <div class="empty" id="cartEmpty">Keranjang masih kosong.</div>
+
+      <div id="checkoutForm" class="hidden" style="margin-top:1rem;">
+        <h3 class="section-title" style="font-size:1.05rem;">Data pemesan</h3>
+        <div class="form-grid">
+          <label>
+            Nama
+            <input type="text" id="customerName" autocomplete="name">
+            <span class="hint">Nama wajib diisi.</span>
+          </label>
+          <label>
+            Jenis
+            <select id="customerType">
+              <option value="perorangan">Perorangan</option>
+              <option value="pabrik">Pabrik</option>
+            </select>
+          </label>
+          <label id="pabrikField" class="hidden">
+            Nama Pabrik
+            <input type="text" id="pabrikName">
+            <span class="hint">Nama pabrik wajib.</span>
+          </label>
+          <label>
+            Email (opsional)
+            <input type="email" id="customerEmail" placeholder="untuk nota & terima kasih" autocomplete="email">
+          </label>
+        </div>
+        <div class="payment-box" id="paymentBox">
+          <h4>Pembayaran</h4>
+          <div id="paymentLines"></div>
+          <div class="qris-wrap hidden" id="qrisWrap">
+            <img id="qrisImage" alt="QRIS" loading="lazy">
+          </div>
         </div>
       </div>
 
-      <div class="actions">
-        <button class="btn btn-secondary" id="btnSaveOrder" type="button">Simpan ke Database</button>
-        <button class="btn btn-primary" id="btnPrint" type="button">Print Nota</button>
-        <button class="btn btn-primary" id="btnWa" type="button">Kirim WhatsApp</button>
-        <button class="btn btn-ghost" id="btnClear" type="button">Reset</button>
+      <div id="doneStep" class="step-ok hidden">
+        <h3>Pesanan siap dikirim 🎉</h3>
+        <p class="brand-sub" id="doneOrderId"></p>
+        <p class="brand-sub">WhatsApp sudah dibuka. Mau kirim email nota juga? (opsional)</p>
       </div>
-    </section>
-  </div>
+    </div>
+    <div class="sheet-footer" id="cartFooter">
+      <div class="grand-total" style="margin:0;border:none;padding:0;">
+        <span>Total</span>
+        <span id="sheetTotal">Rp 0</span>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnWa">Kirim ke WhatsApp</button>
+      <button type="button" class="btn btn-secondary hidden" id="btnEmail">Kirim email nota</button>
+      <button type="button" class="btn btn-ghost" id="btnSaveDb">Simpan ke database</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnPrint">Print nota</button>
+    </div>
+  </section>
+
+  <!-- Variant sheet -->
+  <section class="sheet" id="variantSheet" aria-hidden="true">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="variantTitle">Pilih opsi</h2>
+      <button type="button" class="btn btn-ghost btn-sm" id="btnCloseVariant">Tutup</button>
+    </div>
+    <div class="sheet-body" id="variantBody"></div>
+    <div class="sheet-footer">
+      <div class="grand-total" style="margin:0;border:none;padding:0;">
+        <span>Harga satuan</span>
+        <span id="variantUnitPrice">Rp 0</span>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnConfirmVariant">Tambah ke keranjang</button>
+    </div>
+  </section>
 
   <div class="toast-host" id="toastHost"></div>
   <script src="web/config.js"></script>

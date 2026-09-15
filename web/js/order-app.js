@@ -1,128 +1,332 @@
 (function () {
   var settings = {};
   var menu = [];
-  var orders = [];
+  var variantCatalog = [];
+  var cart = [];
+  var pendingMenu = null;
+  var selectedVariants = {};
+  var lastOrderPayload = null;
+  var lastOrderResult = null;
 
   var els = {
+    appShell: document.getElementById('appShell'),
     menuCards: document.getElementById('menuCards'),
-    orderTable: document.getElementById('orderTable'),
-    emptyOrder: document.getElementById('emptyOrder'),
-    grandTotal: document.getElementById('grandTotal'),
-    customerName: document.getElementById('customerName'),
-    customerType: document.getElementById('customerType'),
-    pabrikField: document.getElementById('pabrikField'),
-    pabrikName: document.getElementById('pabrikName'),
     storeName: document.getElementById('storeName'),
     storeLogo: document.getElementById('storeLogo'),
     paymentLines: document.getElementById('paymentLines'),
     qrisWrap: document.getElementById('qrisWrap'),
-    qrisImage: document.getElementById('qrisImage')
+    qrisImage: document.getElementById('qrisImage'),
+    cartFab: document.getElementById('cartFab'),
+    cartCount: document.getElementById('cartCount'),
+    cartFabTotal: document.getElementById('cartFabTotal'),
+    sheetBackdrop: document.getElementById('sheetBackdrop'),
+    cartSheet: document.getElementById('cartSheet'),
+    cartLines: document.getElementById('cartLines'),
+    cartEmpty: document.getElementById('cartEmpty'),
+    checkoutForm: document.getElementById('checkoutForm'),
+    doneStep: document.getElementById('doneStep'),
+    doneOrderId: document.getElementById('doneOrderId'),
+    sheetTotal: document.getElementById('sheetTotal'),
+    customerName: document.getElementById('customerName'),
+    customerType: document.getElementById('customerType'),
+    pabrikField: document.getElementById('pabrikField'),
+    pabrikName: document.getElementById('pabrikName'),
+    customerEmail: document.getElementById('customerEmail'),
+    variantSheet: document.getElementById('variantSheet'),
+    variantTitle: document.getElementById('variantTitle'),
+    variantBody: document.getElementById('variantBody'),
+    variantUnitPrice: document.getElementById('variantUnitPrice'),
+    btnEmail: document.getElementById('btnEmail')
   };
 
   function money(n) { return 'Rp ' + AGBL.formatCurrency(n); }
 
-  function togglePabrik() {
-    var isPabrik = els.customerType.value === 'pabrik';
-    els.pabrikField.classList.toggle('hidden', !isPabrik);
-    if (!isPabrik) {
-      els.pabrikName.value = '';
-      els.pabrikName.classList.remove('is-invalid');
-    }
+  function groupsForMenu(menuId) {
+    return variantCatalog.filter(function (g) {
+      if (!g.menu_ids || !g.menu_ids.length) return false;
+      if (g.menu_ids.indexOf('*') !== -1) return true;
+      return g.menu_ids.indexOf(menuId) !== -1;
+    });
   }
 
-  function validateForm() {
-    var ok = true;
-    els.customerName.classList.toggle('is-invalid', !els.customerName.value.trim());
-    if (!els.customerName.value.trim()) ok = false;
-
-    if (els.customerType.value === 'pabrik') {
-      els.pabrikName.classList.toggle('is-invalid', !els.pabrikName.value.trim());
-      if (!els.pabrikName.value.trim()) ok = false;
-    } else {
-      els.pabrikName.classList.remove('is-invalid');
-    }
-
-    if (!orders.length) {
-      AGBL.toast('Minimal pilih satu menu.', 'warn');
-      ok = false;
-    }
-    return ok;
+  function lineKey(menuId, variants) {
+    var ids = [];
+    (variants || []).forEach(function (g) {
+      (g.options || []).forEach(function (o) { ids.push(o.id); });
+    });
+    ids.sort();
+    return menuId + '::' + ids.join(',');
   }
 
-  function calcTotal() {
-    return orders.reduce(function (s, o) { return s + o.price * o.quantity; }, 0);
+  function calcUnit(item, variants) {
+    var extra = 0;
+    (variants || []).forEach(function (g) {
+      (g.options || []).forEach(function (o) { extra += Number(o.price_delta) || 0; });
+    });
+    return (Number(item.price) || 0) + extra;
+  }
+
+  function cartTotals() {
+    var count = 0;
+    var total = 0;
+    cart.forEach(function (c) {
+      count += c.quantity;
+      total += c.price * c.quantity;
+    });
+    return { count: count, total: total };
+  }
+
+  function variantSummary(variants) {
+    if (!variants || !variants.length) return '';
+    return variants.map(function (g) {
+      return g.group_label + ': ' + (g.options || []).map(function (o) { return o.label; }).join(', ');
+    }).join(' · ');
+  }
+
+  function openSheet(el) {
+    els.sheetBackdrop.classList.add('open');
+    el.classList.add('open');
+    el.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSheets() {
+    els.sheetBackdrop.classList.remove('open');
+    [els.cartSheet, els.variantSheet].forEach(function (el) {
+      el.classList.remove('open');
+      el.setAttribute('aria-hidden', 'true');
+    });
+    document.body.style.overflow = '';
+  }
+
+  function updateFab() {
+    var t = cartTotals();
+    els.cartCount.textContent = String(t.count);
+    els.cartFabTotal.textContent = money(t.total);
+    els.sheetTotal.textContent = money(t.total);
+    var show = t.count > 0;
+    els.cartFab.classList.toggle('show', show);
+    els.appShell.classList.toggle('has-cart', show);
+  }
+
+  function renderCart() {
+    els.cartLines.innerHTML = '';
+    els.cartEmpty.style.display = cart.length ? 'none' : 'block';
+    els.checkoutForm.classList.toggle('hidden', !cart.length || !els.doneStep.classList.contains('hidden'));
+    cart.forEach(function (line, idx) {
+      var row = document.createElement('div');
+      row.className = 'cart-line';
+      row.innerHTML =
+        '<div><h4></h4><p class="variant-summary"></p>' +
+        '<div class="qty-actions" style="margin-top:.4rem">' +
+        '<button type="button" class="btn btn-secondary btn-icon btn-sm" data-act="dec">−</button>' +
+        '<span style="min-width:1.5rem;text-align:center;font-weight:700">' + line.quantity + '</span>' +
+        '<button type="button" class="btn btn-secondary btn-icon btn-sm" data-act="inc">+</button>' +
+        '<button type="button" class="btn btn-danger btn-icon btn-sm" data-act="del">×</button>' +
+        '</div></div><div class="cart-line-price"></div>';
+      row.querySelector('h4').textContent = line.name;
+      row.querySelector('.variant-summary').textContent = variantSummary(line.variants) || '—';
+      row.querySelector('.cart-line-price').textContent = money(line.price * line.quantity);
+      row.querySelector('[data-act="dec"]').onclick = function () {
+        if (line.quantity > 1) line.quantity -= 1;
+        else cart.splice(idx, 1);
+        renderCart(); updateFab();
+      };
+      row.querySelector('[data-act="inc"]').onclick = function () {
+        line.quantity += 1;
+        renderCart(); updateFab();
+      };
+      row.querySelector('[data-act="del"]').onclick = function () {
+        cart.splice(idx, 1);
+        renderCart(); updateFab();
+      };
+      els.cartLines.appendChild(row);
+    });
+    updateFab();
   }
 
   function renderMenu() {
     els.menuCards.innerHTML = '';
     if (!menu.length) {
-      els.menuCards.innerHTML = '<div class="empty">Menu kosong. Isi sheet Menu atau jalankan setupWorkbook.</div>';
+      els.menuCards.innerHTML = '<div class="empty">Menu kosong.</div>';
       return;
     }
     menu.forEach(function (item) {
       var card = document.createElement('article');
       card.className = 'menu-card';
+      var hasVar = groupsForMenu(item.id).length > 0;
       card.innerHTML =
         '<div class="menu-photo is-placeholder"><img alt="" loading="lazy"></div>' +
         '<div class="menu-card-body">' +
-          '<h3></h3>' +
-          '<p></p>' +
-          '<div class="price"></div>' +
-          '<button class="btn btn-primary btn-sm" type="button">+ Tambah</button>' +
+          '<h3></h3><p></p><div class="price"></div>' +
+          '<button class="btn btn-primary btn-sm btn-add-full" type="button"></button>' +
         '</div>';
       AGBL.bindMenuPhoto(card.querySelector('img'), item);
       card.querySelector('h3').textContent = item.name;
-      card.querySelector('p').textContent = item.description || '—';
+      card.querySelector('p').textContent = item.description || (hasVar ? 'Bisa pilih sambel' : '—');
       card.querySelector('.price').textContent = money(item.price);
-      card.querySelector('button').addEventListener('click', function () {
-        addToOrder(item.name, item.price);
-      });
+      var btn = card.querySelector('button');
+      btn.textContent = hasVar ? '+ Pilih' : '+ Tambah';
+      btn.addEventListener('click', function () { startAdd(item); });
       els.menuCards.appendChild(card);
     });
   }
 
-  function addToOrder(name, price) {
-    var existing = orders.find(function (o) { return o.name === name; });
-    if (existing) existing.quantity += 1;
-    else orders.push({ name: name, price: price, quantity: 1 });
-    renderOrder();
+  function startAdd(item) {
+    var groups = groupsForMenu(item.id);
+    if (!groups.length) {
+      addToCart(item, [], {});
+      AGBL.toast(item.name + ' ditambahkan', 'ok');
+      return;
+    }
+    pendingMenu = item;
+    selectedVariants = {};
+    groups.forEach(function (g) {
+      selectedVariants[g.id] = [];
+      if (g.selection_type === 'single' && g.options[0] && g.min_select > 0) {
+        selectedVariants[g.id] = [g.options[0].id];
+      }
+    });
+    els.variantTitle.textContent = item.name;
+    renderVariantSheet();
+    openSheet(els.variantSheet);
   }
 
-  function renderOrder() {
-    els.orderTable.innerHTML = '';
-    els.emptyOrder.style.display = orders.length ? 'none' : 'block';
-    orders.forEach(function (order) {
-      var tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td></td>' +
-        '<td></td>' +
-        '<td></td>' +
-        '<td></td>' +
-        '<td><div class="qty-actions">' +
-          '<button class="btn btn-secondary btn-icon btn-sm" data-act="dec" type="button">−</button>' +
-          '<button class="btn btn-secondary btn-icon btn-sm" data-act="inc" type="button">+</button>' +
-          '<button class="btn btn-danger btn-icon btn-sm" data-act="del" type="button">×</button>' +
-        '</div></td>';
-      tr.children[0].textContent = order.name;
-      tr.children[1].textContent = money(order.price);
-      tr.children[2].textContent = order.quantity;
-      tr.children[3].textContent = money(order.price * order.quantity);
-      tr.querySelector('[data-act="dec"]').onclick = function () {
-        if (order.quantity > 1) order.quantity -= 1;
-        else orders = orders.filter(function (o) { return o.name !== order.name; });
-        renderOrder();
-      };
-      tr.querySelector('[data-act="inc"]').onclick = function () {
-        order.quantity += 1;
-        renderOrder();
-      };
-      tr.querySelector('[data-act="del"]').onclick = function () {
-        orders = orders.filter(function (o) { return o.name !== order.name; });
-        renderOrder();
-      };
-      els.orderTable.appendChild(tr);
+  function isExcluded(group, optionId) {
+    var chosen = selectedVariants[group.id] || [];
+    var hit = false;
+    group.options.forEach(function (o) {
+      if (chosen.indexOf(o.id) === -1) return;
+      if ((o.excludes || []).indexOf(optionId) !== -1) hit = true;
     });
-    els.grandTotal.textContent = money(calcTotal());
+    // also if selecting this would exclude already chosen? reverse
+    var opt = group.options.find(function (o) { return o.id === optionId; });
+    if (opt) {
+      (opt.excludes || []).forEach(function (ex) {
+        if (chosen.indexOf(ex) !== -1) hit = true;
+      });
+    }
+    return hit;
+  }
+
+  function renderVariantSheet() {
+    var groups = groupsForMenu(pendingMenu.id);
+    els.variantBody.innerHTML = '';
+    groups.forEach(function (g) {
+      var box = document.createElement('div');
+      box.className = 'variant-group';
+      var rule = g.selection_type === 'multi'
+        ? ('Boleh pilih ' + (g.min_select || 0) + '–' + (g.max_select || g.options.length))
+        : 'Pilih satu';
+      if (g.required) rule += ' · wajib';
+      box.innerHTML = '<h4></h4><p class="hint-soft"></p><div class="chip-row"></div>';
+      box.querySelector('h4').textContent = g.label;
+      box.querySelector('.hint-soft').textContent = rule;
+      var row = box.querySelector('.chip-row');
+      g.options.forEach(function (o) {
+        var chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip';
+        var selected = (selectedVariants[g.id] || []).indexOf(o.id) !== -1;
+        if (selected) chip.classList.add('selected');
+        var blocked = !selected && isExcluded(g, o.id);
+        if (blocked) chip.classList.add('disabled');
+        var delta = o.price_delta ? ' (+' + AGBL.formatCurrency(o.price_delta) + ')' : '';
+        chip.textContent = o.label + delta;
+        chip.onclick = function () {
+          if (chip.classList.contains('disabled')) return;
+          toggleOption(g, o.id);
+          renderVariantSheet();
+        };
+        row.appendChild(chip);
+      });
+      els.variantBody.appendChild(box);
+    });
+    var built = buildVariantsFromSelection(pendingMenu.id);
+    els.variantUnitPrice.textContent = money(calcUnit(pendingMenu, built.variants));
+  }
+
+  function toggleOption(group, optionId) {
+    var cur = selectedVariants[group.id] || [];
+    var idx = cur.indexOf(optionId);
+    if (group.selection_type === 'single') {
+      selectedVariants[group.id] = idx === -1 ? [optionId] : [];
+      return;
+    }
+    if (idx !== -1) {
+      cur.splice(idx, 1);
+    } else {
+      // remove excluded opposites first
+      var opt = group.options.find(function (o) { return o.id === optionId; });
+      (opt.excludes || []).forEach(function (ex) {
+        var i = cur.indexOf(ex);
+        if (i !== -1) cur.splice(i, 1);
+      });
+      // remove options that exclude this
+      cur = cur.filter(function (oid) {
+        var other = group.options.find(function (o) { return o.id === oid; });
+        return !other || (other.excludes || []).indexOf(optionId) === -1;
+      });
+      if (group.max_select && cur.length >= group.max_select) {
+        AGBL.toast(group.label + ' maksimal ' + group.max_select, 'warn');
+        selectedVariants[group.id] = cur;
+        return;
+      }
+      cur.push(optionId);
+    }
+    selectedVariants[group.id] = cur;
+  }
+
+  function buildVariantsFromSelection(menuId) {
+    var groups = groupsForMenu(menuId);
+    var variants = [];
+    var ok = true;
+    var err = '';
+    groups.forEach(function (g) {
+      var chosen = selectedVariants[g.id] || [];
+      if (chosen.length < g.min_select || (g.required && !chosen.length)) {
+        ok = false;
+        err = 'Lengkapi: ' + g.label;
+      }
+      if (g.max_select && chosen.length > g.max_select) {
+        ok = false;
+        err = g.label + ' terlalu banyak';
+      }
+      var opts = [];
+      chosen.forEach(function (oid) {
+        var o = g.options.find(function (x) { return x.id === oid; });
+        if (o) opts.push({ id: o.id, label: o.label, price_delta: o.price_delta });
+      });
+      if (opts.length) {
+        variants.push({ group_id: g.id, group_label: g.label, options: opts });
+      }
+    });
+    return { ok: ok, error: err, variants: variants };
+  }
+
+  function addToCart(item, variants, selectedMap) {
+    var unit = calcUnit(item, variants);
+    var key = lineKey(item.id, variants);
+    var existing = cart.find(function (c) { return c.key === key; });
+    if (existing) existing.quantity += 1;
+    else {
+      cart.push({
+        key: key,
+        menu_id: item.id,
+        name: item.name,
+        base_price: item.price,
+        price: unit,
+        quantity: 1,
+        variants: variants,
+        selected_variants: selectedMap || {}
+      });
+    }
+    // reset done step if new items
+    els.doneStep.classList.add('hidden');
+    els.btnEmail.classList.add('hidden');
+    lastOrderResult = null;
+    renderCart();
+    updateFab();
   }
 
   function renderPayment() {
@@ -133,36 +337,59 @@
     if (settings.rek_jago) lines.push(settings.rek_jago);
     els.paymentLines.innerHTML = lines.map(function (l) {
       return '<p>' + escapeHtml(l) + '</p>';
-    }).join('') || '<p class="empty">Belum ada info pembayaran di Settings.</p>';
-
+    }).join('') || '<p class="empty">Belum ada info pembayaran.</p>';
     var qris = settings.qris_image_url || AGBL.normalizeQris(settings.qris_url || '');
     if (qris) {
       els.qrisWrap.classList.remove('hidden');
       els.qrisImage.src = qris;
-      els.qrisImage.onerror = function () {
-        els.qrisWrap.classList.add('hidden');
-        AGBL.toast('QRIS tidak bisa dimuat. Pastikan file Drive di-share Anyone with link.', 'warn');
-      };
-    } else {
-      els.qrisWrap.classList.add('hidden');
-    }
+    } else els.qrisWrap.classList.add('hidden');
   }
 
   function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  function buildOrderPayload() {
+  function validateCheckout() {
+    if (!cart.length) {
+      AGBL.toast('Keranjang kosong.', 'warn');
+      return false;
+    }
+    els.customerName.classList.toggle('is-invalid', !els.customerName.value.trim());
+    if (!els.customerName.value.trim()) return false;
+    if (els.customerType.value === 'pabrik') {
+      els.pabrikName.classList.toggle('is-invalid', !els.pabrikName.value.trim());
+      if (!els.pabrikName.value.trim()) return false;
+    }
+    var email = els.customerEmail.value.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      AGBL.toast('Format email tidak valid.', 'warn');
+      return false;
+    }
+    return true;
+  }
+
+  function buildPayload() {
+    var selectedMaps = cart.map(function (c) {
+      var map = {};
+      (c.variants || []).forEach(function (g) {
+        map[g.group_id] = (g.options || []).map(function (o) { return o.id; });
+      });
+      return map;
+    });
     return {
       customer_name: els.customerName.value.trim(),
       customer_type: els.customerType.value,
       pabrik_name: els.pabrikName.value.trim(),
-      items: orders.map(function (o) {
-        return { name: o.name, quantity: o.quantity, price: o.price };
+      customer_email: els.customerEmail.value.trim(),
+      items: cart.map(function (c, i) {
+        return {
+          menu_id: c.menu_id,
+          name: c.name,
+          quantity: c.quantity,
+          price: c.price,
+          selected_variants: selectedMaps[i],
+          variants: c.variants
+        };
       }),
       idempotency_key: AGBL.uuid(),
       source: 'web',
@@ -178,114 +405,100 @@
   }
 
   function paymentText() {
-    var lines = [];
-    if (settings.wallet_number) lines.push(settings.wallet_number);
-    if (settings.rek_mandiri) lines.push(settings.rek_mandiri);
-    if (settings.rek_permata) lines.push(settings.rek_permata);
-    if (settings.rek_jago) lines.push(settings.rek_jago);
-    return lines;
+    return [settings.wallet_number, settings.rek_mandiri, settings.rek_permata, settings.rek_jago]
+      .filter(Boolean);
   }
 
-  function saveOrder() {
-    if (!validateForm()) return;
-    var payload = buildOrderPayload();
-    var btn = document.getElementById('btnSaveOrder');
-    btn.disabled = true;
+  function waMessage(payload, orderId) {
+    var now = new Date();
+    var date = now.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+    var time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    var pesanan = payload.items.map(function (o, i) {
+      var v = variantSummary(o.variants);
+      return (i + 1) + '. ' + o.name + (v ? ' (' + v + ')' : '') +
+        ' | ' + o.quantity + 'x | Rp' + AGBL.formatCurrency(o.price * o.quantity);
+    }).join('\n');
+    var total = payload.items.reduce(function (s, o) { return s + o.price * o.quantity; }, 0);
+    var pay = paymentText().map(function (l) { return '_*' + l + '*_'; }).join('\n');
+    return 'Halo, saya mau pesan di *' + (settings.store_name || 'toko') + '*\n' +
+      (orderId ? 'ID: *' + orderId + '*\n' : '') +
+      'Nama: *' + payload.customer_name + '*\n' +
+      '*' + customerTypeLabel() + '*\n' +
+      date + ' · ' + time + '\n\n' +
+      'Pesanan:\n' + pesanan + '\n\n' +
+      '*Grand Total: Rp' + AGBL.formatCurrency(total) + '*\n\n' +
+      '*_Pembayaran:_*\n' + pay;
+  }
 
-    function done(msg, type) {
-      btn.disabled = false;
-      AGBL.toast(msg, type || 'ok');
+  function openWhatsApp(message) {
+    var phone = String(settings.wa_number || '').replace(/\D/g, '');
+    if (!phone) {
+      AGBL.toast('wa_number belum diisi di Settings.', 'err');
+      return false;
+    }
+    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(message), '_blank');
+    return true;
+  }
+
+  function afterCheckoutSuccess(payload, result) {
+    lastOrderPayload = payload;
+    lastOrderResult = result;
+    els.checkoutForm.classList.add('hidden');
+    els.doneStep.classList.remove('hidden');
+    els.doneOrderId.textContent = result && result.order_id ? ('ID: ' + result.order_id) : 'Pesanan dicatat di perangkat';
+    var canEmail = !!(payload.customer_email || settings.notify_email);
+    els.btnEmail.classList.toggle('hidden', !canEmail);
+    document.getElementById('btnWa').textContent = 'Kirim ulang WhatsApp';
+  }
+
+  function saveThen(next) {
+    if (!validateCheckout()) return;
+    var payload = buildPayload();
+    lastOrderPayload = payload;
+
+    function finishLocal(msg) {
+      AGBL.toast(msg, 'warn');
+      afterCheckoutSuccess(payload, { order_id: '', grand_total: cartTotals().total });
+      if (next) next(payload, { order_id: '' });
+    }
+
+    var hasScript = !!(window.SCRIPT_URL && String(window.SCRIPT_URL).indexOf('script.google') !== -1) ||
+      !!(window.APP_CONFIG && window.APP_CONFIG.SCRIPT_URL);
+
+    if (!hasScript) {
+      finishLocal('Mode lokal: lanjut kirim WA. Deploy Apps Script untuk database/email.');
+      return;
     }
 
     if (!AGBL.isOnline()) {
       AGBL.enqueueOrder(payload);
-      done('Offline: pesanan diantrekan. Akan sync otomatis.', 'warn');
-      return;
-    }
-
-    if (!(window.APP_CONFIG && window.APP_CONFIG.SCRIPT_URL) && !(window.SCRIPT_URL && String(window.SCRIPT_URL).indexOf('script.google') !== -1)) {
-      done('Belum terhubung ke Apps Script. Print/WA tetap bisa. Lihat docs/SETUP.md', 'warn');
+      finishLocal('Offline: antrean tersimpan. Lanjut WA.');
       return;
     }
 
     AGBL.api('createOrder', payload).then(function (res) {
       if (!res.ok) throw new Error(res.error || 'Gagal simpan');
-      if (res.duplicate) done('Pesanan sudah tercatat sebelumnya.', 'warn');
-      else done('Tersimpan: ' + res.order_id, 'ok');
+      AGBL.toast(res.duplicate ? 'Sudah tercatat' : ('Tersimpan ' + res.order_id), 'ok');
+      afterCheckoutSuccess(payload, res);
+      if (next) next(payload, res);
     }).catch(function (err) {
       AGBL.enqueueOrder(payload);
-      done((err && err.message) || 'Gagal online. Disimpan ke antrean offline.', 'warn');
-    }).finally(function () {
-      btn.disabled = false;
+      finishLocal((err && err.message) || 'Gagal online. Disimpan antrean.');
     });
-  }
-
-  function printNota() {
-    if (!validateForm()) return;
-    var now = new Date();
-    var ts = now.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) +
-      ' ' + now.toLocaleTimeString('id-ID');
-    var rows = orders.map(function (o, i) {
-      return '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(o.name) + '</td><td>' +
-        money(o.price) + '</td><td>' + o.quantity + '</td><td>' + money(o.price * o.quantity) + '</td></tr>';
-    }).join('');
-    var pay = paymentText().map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('');
-    var qris = settings.qris_image_url || AGBL.normalizeQris(settings.qris_url || '');
-    var logo = AGBL.resolveLogo(settings);
-    var qrisHtml = qris ? '<div style="margin-top:12px;"><img src="' + escapeHtml(qris) + '" style="width:180px;"/></div>' : '';
-    var logoHtml = logo ? '<img src="' + escapeHtml(logo) + '" alt="logo" style="width:72px;height:72px;border-radius:50%;object-fit:cover;"/>' : '';
-    var html = '<html><head><title>Nota ' + escapeHtml(settings.store_name || '') + '</title>' +
-      '<style>body{font-family:Manrope,sans-serif;padding:24px}table{border-collapse:collapse;width:100%}' +
-      'th,td{border:1px solid #333;padding:8px;text-align:left}h2{font-family:Fraunces,serif}.nota-brand{display:flex;align-items:center;gap:12px;margin-bottom:12px}</style></head><body>' +
-      '<div class="nota-brand">' + logoHtml + '<h2 style="margin:0">Nota Pembayaran ' + escapeHtml(settings.store_name || '') + '</h2></div>' +
-      '<p>Nama: <b>' + escapeHtml(els.customerName.value.trim()) + '</b></p>' +
-      '<p><b>' + escapeHtml(customerTypeLabel()) + '</b></p>' +
-      '<p>Tanggal: ' + escapeHtml(ts) + '</p>' +
-      '<table><thead><tr><th>No</th><th>Menu</th><th>Harga</th><th>Qty</th><th>Total</th></tr></thead><tbody>' +
-      rows +
-      '<tr><td colspan="4"><b>Grand Total</b></td><td><b>' + money(calcTotal()) + '</b></td></tr>' +
-      '</tbody></table><div style="margin-top:16px;"><b>Pembayaran:</b>' + pay + qrisHtml + '</div></body></html>';
-
-    var w = window.open('', '_blank');
-    if (!w) {
-      AGBL.toast('Pop-up diblokir. Izinkan jendela baru untuk print.', 'warn');
-      return;
-    }
-    w.document.write(html);
-    w.document.close();
-    w.onload = function () { w.print(); };
-  }
-
-  function sendWhatsApp() {
-    if (!validateForm()) return;
-    var now = new Date();
-    var date = now.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-    var time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    var pesanan = orders.map(function (o, i) {
-      return (i + 1) + '. ' + o.name + ' | Rp' + AGBL.formatCurrency(o.price) +
-        ' | ' + o.quantity + 'pcs | Rp' + AGBL.formatCurrency(o.price * o.quantity);
-    }).join('\n');
-    var pay = paymentText().map(function (l) { return '_*' + l + '*_'; }).join('\n');
-    var message =
-      'Nama Customer: *' + els.customerName.value.trim() + '*\n' +
-      '*' + customerTypeLabel() + '*\n' +
-      '*Tanggal: ' + date + '*\n' +
-      '*Jam: ' + time + '*\n\n' +
-      'Pesanan:\n' + pesanan + '\n\n' +
-      '*Grand Total: Rp' + AGBL.formatCurrency(calcTotal()) + '*\n\n' +
-      '*_Pembayaran:_*\n' + pay;
-
-    var phone = String(settings.wa_number || '').replace(/\D/g, '');
-    if (!phone) {
-      AGBL.toast('wa_number belum diisi di Settings.', 'err');
-      return;
-    }
-    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(message), '_blank');
   }
 
   function applyBootstrap(data) {
     settings = data.settings || {};
     menu = data.menu || [];
+    variantCatalog = (data.variants || []).map(function (g) {
+      return Object.assign({}, g, {
+        menu_ids: Array.isArray(g.menu_ids) ? g.menu_ids : String(g.menu_ids || '').split(/[,;|]/).map(function (x) { return x.trim(); }).filter(Boolean)
+      });
+    });
+    // local fallback variants if empty
+    if (!variantCatalog.length && data.local_fallback) {
+      variantCatalog = localVariantsFallback();
+    }
     AGBL.assetsBase = settings.menu_photos_base_url || (window.APP_CONFIG && window.APP_CONFIG.ASSETS_BASE_URL) || '';
     els.storeName.textContent = settings.store_name || 'Toko';
     document.title = 'Order · ' + (settings.store_name || 'Menu');
@@ -294,31 +507,145 @@
     renderPayment();
   }
 
+  function localVariantsFallback() {
+    return [
+      {
+        id: 'g_sambel',
+        menu_ids: ['m01', 'm02', 'm03', 'm04', 'm05', 'm06'],
+        label: 'Pilih Sambel',
+        selection_type: 'single',
+        min_select: 1,
+        max_select: 1,
+        required: true,
+        options: [
+          { id: 'opt_terasi', label: 'Sambel Terasi', price_delta: 0, excludes: [] },
+          { id: 'opt_gepuk', label: 'Sambel Gepuk', price_delta: 0, excludes: [] }
+        ]
+      },
+      {
+        id: 'g_extra_sambel',
+        menu_ids: ['m01', 'm02', 'm03', 'm04', 'm05', 'm06'],
+        label: 'Extra Sambel',
+        selection_type: 'multi',
+        min_select: 0,
+        max_select: 2,
+        required: false,
+        options: [
+          { id: 'opt_x_terasi', label: 'Extra Sambel Terasi', price_delta: 5000, excludes: ['opt_x_matah'] },
+          { id: 'opt_x_gepuk', label: 'Extra Sambel Gepuk', price_delta: 5000, excludes: [] },
+          { id: 'opt_x_matah', label: 'Sambel Matah', price_delta: 5000, excludes: ['opt_x_terasi'] }
+        ]
+      }
+    ];
+  }
+
   function init() {
     AGBL.bindNetwork();
-    els.customerType.addEventListener('change', togglePabrik);
-    document.getElementById('btnSaveOrder').addEventListener('click', saveOrder);
-    document.getElementById('btnPrint').addEventListener('click', printNota);
-    document.getElementById('btnWa').addEventListener('click', sendWhatsApp);
-    document.getElementById('btnClear').addEventListener('click', function () {
-      orders = [];
-      els.customerName.value = '';
-      els.pabrikName.value = '';
-      els.customerType.value = 'perorangan';
-      togglePabrik();
-      renderOrder();
-      AGBL.toast('Form direset.', 'ok');
+    els.customerType.addEventListener('change', function () {
+      els.pabrikField.classList.toggle('hidden', els.customerType.value !== 'pabrik');
     });
+
+    els.cartFab.addEventListener('click', function () {
+      els.doneStep.classList.add('hidden');
+      els.checkoutForm.classList.toggle('hidden', !cart.length);
+      renderCart();
+      openSheet(els.cartSheet);
+    });
+    document.getElementById('btnCloseCart').onclick = closeSheets;
+    document.getElementById('btnCloseVariant').onclick = closeSheets;
+    els.sheetBackdrop.onclick = closeSheets;
+
+    document.getElementById('btnConfirmVariant').onclick = function () {
+      var built = buildVariantsFromSelection(pendingMenu.id);
+      if (!built.ok) {
+        AGBL.toast(built.error || 'Lengkapi pilihan', 'warn');
+        return;
+      }
+      addToCart(pendingMenu, built.variants, selectedVariants);
+      closeSheets();
+      AGBL.toast('Ditambahkan ke keranjang', 'ok');
+    };
+
+    document.getElementById('btnWa').onclick = function () {
+      if (!els.doneStep.classList.contains('hidden') && lastOrderPayload) {
+        openWhatsApp(waMessage(lastOrderPayload, lastOrderResult && lastOrderResult.order_id));
+        return;
+      }
+      saveThen(function (payload, res) {
+        openWhatsApp(waMessage(payload, res && res.order_id));
+      });
+    };
+
+    document.getElementById('btnSaveDb').onclick = function () {
+      saveThen(function () {
+        AGBL.toast('Database updated.', 'ok');
+      });
+    };
+
+    document.getElementById('btnEmail').onclick = function () {
+      if (!lastOrderPayload) return AGBL.toast('Checkout dulu via WhatsApp.', 'warn');
+      var payload = lastOrderPayload;
+      var items = (lastOrderResult && lastOrderResult.items) || payload.items.map(function (it) {
+        return {
+          name: it.name,
+          quantity: it.quantity,
+          price: it.price,
+          total: it.price * it.quantity,
+          variants: it.variants
+        };
+      });
+      AGBL.api('sendOrderEmail', {
+        customer_name: payload.customer_name,
+        customer_email: payload.customer_email,
+        order_id: lastOrderResult && lastOrderResult.order_id,
+        grand_total: lastOrderResult && lastOrderResult.grand_total || cartTotals().total,
+        items: items
+      }).then(function (res) {
+        if (!res.ok) throw new Error(res.error || 'Gagal kirim email');
+        AGBL.toast('Email nota terkirim', 'ok');
+      }).catch(function (err) {
+        AGBL.toast(err.message || 'Email gagal (perlu Apps Script + izin Gmail)', 'err');
+      });
+    };
+
+    document.getElementById('btnPrint').onclick = function () {
+      if (!validateCheckout() && els.doneStep.classList.contains('hidden')) return;
+      var payload = lastOrderPayload || buildPayload();
+      var now = new Date();
+      var ts = now.toLocaleString('id-ID');
+      var rows = payload.items.map(function (o, i) {
+        var v = variantSummary(o.variants);
+        return '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(o.name) +
+          (v ? '<br><small>' + escapeHtml(v) + '</small>' : '') +
+          '</td><td>' + o.quantity + '</td><td>' + money(o.price) +
+          '</td><td>' + money(o.price * o.quantity) + '</td></tr>';
+      }).join('');
+      var total = payload.items.reduce(function (s, o) { return s + o.price * o.quantity; }, 0);
+      var logo = AGBL.resolveLogo(settings);
+      var html = '<html><head><title>Nota</title><style>body{font-family:Manrope,sans-serif;padding:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #333;padding:8px}</style></head><body>' +
+        (logo ? '<img src="' + escapeHtml(logo) + '" style="width:64px;height:64px;border-radius:50%">' : '') +
+        '<h2>' + escapeHtml(settings.store_name || '') + '</h2>' +
+        '<p>' + escapeHtml(payload.customer_name) + ' · ' + escapeHtml(customerTypeLabel()) + '</p>' +
+        '<p>' + escapeHtml(ts) + '</p><table><thead><tr><th>No</th><th>Menu</th><th>Qty</th><th>Harga</th><th>Total</th></tr></thead><tbody>' +
+        rows + '<tr><td colspan="4"><b>Grand Total</b></td><td><b>' + money(total) + '</b></td></tr></tbody></table></body></html>';
+      var w = window.open('', '_blank');
+      if (!w) return AGBL.toast('Izinkan pop-up untuk print', 'warn');
+      w.document.write(html);
+      w.document.close();
+      w.onload = function () { w.print(); };
+    };
 
     AGBL.loadBootstrap().then(function (res) {
-      applyBootstrap(res.data);
-      if (res.fromCache) AGBL.toast('Menampilkan data cache.', 'warn');
+      var data = res.data || {};
+      if (res.fromCache || data.local_fallback) data.local_fallback = true;
+      applyBootstrap(data);
       AGBL.flushQueue();
     }).catch(function (err) {
-      AGBL.toast(err.message || 'Gagal memuat menu.', 'err');
+      AGBL.toast(err.message || 'Gagal memuat menu', 'err');
+      applyBootstrap({ settings: {}, menu: [], local_fallback: true, variants: [] });
     });
 
-    renderOrder();
+    renderCart();
   }
 
   init();

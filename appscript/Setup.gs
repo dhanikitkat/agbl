@@ -39,10 +39,33 @@ function setupWorkbook() {
     if (!('spreadsheet_id' in settingsMap)) {
       setSetting_('spreadsheet_id', '11rRX_69jGmqu7AgKJod7yx1XXh1FvAMy8QZU149NSoY');
     }
+    if (!('notify_email' in settingsMap)) setSetting_('notify_email', '');
+    if (!('email_subject_prefix' in settingsMap)) setSetting_('email_subject_prefix', 'Nota');
+    if (!('email_thankyou_text' in settingsMap)) {
+      setSetting_('email_thankyou_text', 'Terima kasih sudah pesan di Ayam Gepuk Bu Leny. Selamat menikmati!');
+    }
+
+    // Variant sambel
+    var vg = ss.getSheetByName(APP_CONFIG.SHEETS.VARIANT_GROUPS);
+    if (!vg) {
+      vg = ss.insertSheet(APP_CONFIG.SHEETS.VARIANT_GROUPS);
+      vg.getRange(1, 1, APP_CONFIG.DEFAULT_VARIANT_GROUPS.length, APP_CONFIG.DEFAULT_VARIANT_GROUPS[0].length)
+        .setValues(APP_CONFIG.DEFAULT_VARIANT_GROUPS);
+      vg.setFrozenRows(1);
+    }
+    var vo = ss.getSheetByName(APP_CONFIG.SHEETS.VARIANT_OPTIONS);
+    if (!vo) {
+      vo = ss.insertSheet(APP_CONFIG.SHEETS.VARIANT_OPTIONS);
+      vo.getRange(1, 1, APP_CONFIG.DEFAULT_VARIANT_OPTIONS.length, APP_CONFIG.DEFAULT_VARIANT_OPTIONS[0].length)
+        .setValues(APP_CONFIG.DEFAULT_VARIANT_OPTIONS);
+      vo.setFrozenRows(1);
+    } else {
+      ensureVariantSheets_();
+    }
 
     // Orders
     getOrCreateSheet_(APP_CONFIG.SHEETS.ORDERS, [
-      'order_id', 'created_at', 'customer_name', 'customer_type', 'pabrik_name',
+      'order_id', 'created_at', 'customer_name', 'customer_type', 'pabrik_name', 'customer_email',
       'items_json', 'grand_total', 'status', 'source', 'idempotency_key', 'created_by', 'client_created_at'
     ]);
 

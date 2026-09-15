@@ -126,6 +126,9 @@ function publicSettings_() {
     qris_url: map.qris_url || '',
     qris_image_url: normalizeQrisUrl_(map.qris_url || ''),
     wa_number: map.wa_number || '',
+    notify_email: map.notify_email || '',
+    email_subject_prefix: map.email_subject_prefix || 'Nota',
+    email_thankyou_text: map.email_thankyou_text || 'Terima kasih sudah pesan!',
     menu_photos_folder_id: map.menu_photos_folder_id || '',
     menu_photos_folder_url: map.menu_photos_folder_url || '',
     menu_photos_base_url: map.menu_photos_base_url || '',
@@ -153,7 +156,7 @@ function withScriptLock_(fn, timeoutMs) {
 function findOrderByIdempotency_(key) {
   if (!key) return null;
   var sheet = getOrCreateSheet_(APP_CONFIG.SHEETS.ORDERS, [
-    'order_id', 'created_at', 'customer_name', 'customer_type', 'pabrik_name',
+    'order_id', 'created_at', 'customer_name', 'customer_type', 'pabrik_name', 'customer_email',
     'items_json', 'grand_total', 'status', 'source', 'idempotency_key', 'created_by', 'client_created_at'
   ]);
   var rows = sheetToObjects_(sheet);
@@ -167,7 +170,7 @@ function findOrderByIdempotency_(key) {
 
 function appendOrder_(order) {
   var sheet = getOrCreateSheet_(APP_CONFIG.SHEETS.ORDERS, [
-    'order_id', 'created_at', 'customer_name', 'customer_type', 'pabrik_name',
+    'order_id', 'created_at', 'customer_name', 'customer_type', 'pabrik_name', 'customer_email',
     'items_json', 'grand_total', 'status', 'source', 'idempotency_key', 'created_by', 'client_created_at'
   ]);
   sheet.appendRow([
@@ -176,6 +179,7 @@ function appendOrder_(order) {
     order.customer_name,
     order.customer_type,
     order.pabrik_name,
+    order.customer_email || '',
     order.items_json,
     order.grand_total,
     order.status,
@@ -188,7 +192,7 @@ function appendOrder_(order) {
 
 function listOrders_(limit) {
   var sheet = getOrCreateSheet_(APP_CONFIG.SHEETS.ORDERS, [
-    'order_id', 'created_at', 'customer_name', 'customer_type', 'pabrik_name',
+    'order_id', 'created_at', 'customer_name', 'customer_type', 'pabrik_name', 'customer_email',
     'items_json', 'grand_total', 'status', 'source', 'idempotency_key', 'created_by', 'client_created_at'
   ]);
   var rows = sheetToObjects_(sheet);
@@ -209,6 +213,7 @@ function listOrders_(limit) {
       customer_name: r.customer_name,
       customer_type: r.customer_type,
       pabrik_name: r.pabrik_name,
+      customer_email: r.customer_email || '',
       items: items,
       grand_total: Number(r.grand_total) || 0,
       status: r.status,

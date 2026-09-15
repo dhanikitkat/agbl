@@ -66,11 +66,15 @@ function handleApi_(method, params, body) {
           ok: true,
           settings: publicSettings_(),
           menu: getActiveMenu_(),
+          variants: getVariantCatalog_(),
           server_time: new Date().toISOString()
         };
 
       case 'createOrder':
         return createOrderApi_(params);
+
+      case 'sendOrderEmail':
+        return sendOrderEmailApi_(params);
 
       case 'login':
         return (function () {
@@ -118,6 +122,7 @@ function createOrderApi_(params) {
   var customerName = String(params.customer_name || '').trim();
   var customerType = String(params.customer_type || 'perorangan').trim();
   var pabrikName = String(params.pabrik_name || '').trim();
+  var customerEmail = String(params.customer_email || '').trim();
   var idempotencyKey = String(params.idempotency_key || '').trim();
   var source = String(params.source || 'web').trim();
   var createdBy = String(params.created_by || 'guest').trim();
@@ -137,41 +142,51 @@ function createOrderApi_(params) {
   if (!idempotencyKey) {
     throw new Error('idempotency_key wajib (cegah double-submit).');
   }
+  if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+    throw new Error('Format email tidak valid.');
+  }
 
-  // Validasi harga dari Menu sheet (jangan percaya harga client)
+  var menuById = {};
   var menuByName = {};
   getActiveMenu_().forEach(function (m) {
+    menuById[m.id] = m;
     menuByName[m.name] = m;
   });
 
   var normalized = [];
   var grandTotal = 0;
   items.forEach(function (it) {
-    var name = String(it.name || '').trim();
+    var menu = null;
+    if (it.menu_id && menuById[String(it.menu_id)]) menu = menuById[String(it.menu_id)];
+    else if (it.name && menuByName[String(it.name)]) menu = menuByName[String(it.name)];
     var qty = Number(it.quantity) || 0;
-    if (!name || qty < 1) return;
-    var menu = menuByName[name];
-    if (!menu) throw new Error('Menu tidak ditemukan / nonaktif: ' + name);
+    if (!menu || qty < 1) return;
+
+    var selected = it.selected_variants || it.variants_selected || {};
+    if (typeof selected === 'string') {
+      try { selected = JSON.parse(selected); } catch (e) { selected = {}; }
+    }
+    var priced = validateAndPriceVariants_(menu.id, selected);
+    var unit = menu.price + priced.extra;
     var line = {
       id: menu.id,
       name: menu.name,
-      price: menu.price,
+      base_price: menu.price,
+      price: unit,
       quantity: qty,
-      total: menu.price * qty
+      total: unit * qty,
+      variants: priced.variants
     };
     normalized.push(line);
     grandTotal += line.total;
   });
   if (!normalized.length) throw new Error('Item pesanan tidak valid.');
 
-  // Optional auth: jika token dikirim, catat sebagai kasir/owner
   if (params.token) {
     try {
       var sess = requireAuth_(params.token, ['owner', 'kasir']);
       createdBy = sess.username;
-    } catch (e) {
-      // guest tetap boleh order dari halaman publik
-    }
+    } catch (e) { /* guest ok */ }
   }
 
   return withScriptLock_(function () {
@@ -195,6 +210,7 @@ function createOrderApi_(params) {
       customer_name: customerName,
       customer_type: customerType,
       pabrik_name: pabrikName,
+      customer_email: customerEmail,
       items_json: JSON.stringify(normalized),
       grand_total: grandTotal,
       status: 'new',
@@ -214,6 +230,89 @@ function createOrderApi_(params) {
   });
 }
 
+function sendOrderEmailApi_(params) {
+  var customerEmail = String(params.customer_email || '').trim();
+  var settings = publicSettings_();
+  var notify = String(settings.notify_email || '').trim();
+  var toList = [];
+  if (customerEmail) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      throw new Error('Format email customer tidak valid.');
+    }
+    toList.push(customerEmail);
+  }
+  if (notify && toList.indexOf(notify) === -1) toList.push(notify);
+  if (!toList.length) {
+    throw new Error('Isi email customer atau Settings.notify_email dulu.');
+  }
+
+  var customerName = String(params.customer_name || 'Pelanggan').trim();
+  var orderId = String(params.order_id || '').trim();
+  var items = params.items;
+  if (typeof items === 'string') {
+    try { items = JSON.parse(items); } catch (e) { items = []; }
+  }
+  if (!Array.isArray(items) || !items.length) throw new Error('Item kosong.');
+
+  var rows = items.map(function (it, idx) {
+    var variantTxt = '';
+    if (it.variants && it.variants.length) {
+      variantTxt = '<br><small>' + it.variants.map(function (g) {
+        return g.group_label + ': ' + (g.options || []).map(function (o) { return o.label; }).join(', ');
+      }).join(' · ') + '</small>';
+    }
+    return '<tr><td>' + (idx + 1) + '</td><td>' + escapeHtml_(it.name) + variantTxt +
+      '</td><td>' + Number(it.quantity || 0) + '</td><td>Rp ' + formatId_(it.price) +
+      '</td><td>Rp ' + formatId_(it.total || (it.price * it.quantity)) + '</td></tr>';
+  }).join('');
+
+  var total = Number(params.grand_total);
+  if (!total) {
+    total = items.reduce(function (s, it) {
+      return s + (Number(it.total) || (Number(it.price) * Number(it.quantity)) || 0);
+    }, 0);
+  }
+
+  var thank = settings.email_thankyou_text || 'Terima kasih sudah pesan!';
+  var subject = (settings.email_subject_prefix || 'Nota') + ' ' + settings.store_name +
+    (orderId ? ' · ' + orderId : '');
+
+  var html =
+    '<div style="font-family:Arial,sans-serif;color:#1a1208">' +
+    '<h2 style="color:#c2410c;margin:0 0 8px">' + escapeHtml_(settings.store_name) + '</h2>' +
+    '<p style="margin:0 0 16px">' + escapeHtml_(thank) + '</p>' +
+    '<p>Halo <b>' + escapeHtml_(customerName) + '</b>,' +
+    (orderId ? ' berikut nota <b>' + escapeHtml_(orderId) + '</b>.' : ' berikut ringkasan pesananmu.') +
+    '</p>' +
+    '<table style="border-collapse:collapse;width:100%;margin:16px 0" cellpadding="8">' +
+    '<thead><tr style="background:#ffe566"><th align="left">No</th><th align="left">Menu</th>' +
+    '<th>Qty</th><th>Harga</th><th>Total</th></tr></thead><tbody>' + rows +
+    '<tr><td colspan="4"><b>Grand Total</b></td><td><b>Rp ' + formatId_(total) + '</b></td></tr>' +
+    '</tbody></table>' +
+    '<p style="color:#6e5a3d;font-size:13px">Pesan ini dikirim otomatis dari sistem order.</p></div>';
+
+  return withScriptLock_(function () {
+    MailApp.sendEmail({
+      to: toList.join(','),
+      subject: subject,
+      htmlBody: html,
+      name: settings.store_name || 'POS Warung'
+    });
+    return { ok: true, sent_to: toList };
+  });
+}
+
+function formatId_(n) {
+  return Number(n || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+}
+
+function escapeHtml_(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 function updateSettingsApi_(params) {
   requireAuth_(params.token, ['owner']);
   var expectedVersion = String(params.expected_version || '');
