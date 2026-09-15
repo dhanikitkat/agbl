@@ -69,11 +69,12 @@
   function fillSettingsForm(s) {
     settings = s || {};
     settingsVersion = String(s.settings_version || '1');
-    ['store_name', 'wa_number', 'wallet_number', 'rek_mandiri', 'rek_permata', 'rek_jago', 'qris_url', 'menu_photos_folder_id', 'menu_photos_folder_url', 'menu_photos_base_url'].forEach(function (k) {
+    ['store_name', 'wa_number', 'wallet_number', 'rek_mandiri', 'rek_permata', 'rek_jago', 'qris_url', 'logo_url', 'menu_photos_folder_id', 'menu_photos_folder_url', 'menu_photos_base_url'].forEach(function (k) {
       var el = document.getElementById('set_' + k);
       if (el) el.value = s[k] || '';
     });
     AGBL.assetsBase = s.menu_photos_base_url || (window.APP_CONFIG && window.APP_CONFIG.ASSETS_BASE_URL) || '';
+    AGBL.bindBrandLogo(document.getElementById('storeLogo'), s);
     document.getElementById('settingsVersionLabel').textContent = 'Versi settings: ' + settingsVersion;
   }
 
@@ -265,7 +266,7 @@
 
     document.getElementById('btnSaveSettings').onclick = function () {
       var updates = {};
-      ['store_name', 'wa_number', 'wallet_number', 'rek_mandiri', 'rek_permata', 'rek_jago', 'qris_url', 'menu_photos_folder_id', 'menu_photos_folder_url', 'menu_photos_base_url'].forEach(function (k) {
+      ['store_name', 'wa_number', 'wallet_number', 'rek_mandiri', 'rek_permata', 'rek_jago', 'qris_url', 'logo_url', 'menu_photos_folder_id', 'menu_photos_folder_url', 'menu_photos_base_url'].forEach(function (k) {
         updates[k] = document.getElementById('set_' + k).value.trim();
       });
       AGBL.api('updateSettings', {
