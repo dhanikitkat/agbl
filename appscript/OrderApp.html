@@ -63,10 +63,14 @@
       var card = document.createElement('article');
       card.className = 'menu-card';
       card.innerHTML =
-        '<h3></h3>' +
-        '<p></p>' +
-        '<div class="price"></div>' +
-        '<button class="btn btn-primary btn-sm" type="button">+ Tambah</button>';
+        '<div class="menu-photo is-placeholder"><img alt="" loading="lazy"></div>' +
+        '<div class="menu-card-body">' +
+          '<h3></h3>' +
+          '<p></p>' +
+          '<div class="price"></div>' +
+          '<button class="btn btn-primary btn-sm" type="button">+ Tambah</button>' +
+        '</div>';
+      AGBL.bindMenuPhoto(card.querySelector('img'), item);
       card.querySelector('h3').textContent = item.name;
       card.querySelector('p').textContent = item.description || '—';
       card.querySelector('.price').textContent = money(item.price);
@@ -280,6 +284,7 @@
   function applyBootstrap(data) {
     settings = data.settings || {};
     menu = data.menu || [];
+    AGBL.assetsBase = settings.menu_photos_base_url || (window.APP_CONFIG && window.APP_CONFIG.ASSETS_BASE_URL) || '';
     els.storeName.textContent = settings.store_name || 'Toko';
     document.title = 'Order · ' + (settings.store_name || 'Menu');
     renderMenu();

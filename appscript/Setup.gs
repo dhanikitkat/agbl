@@ -22,7 +22,15 @@ function setupWorkbook() {
       menu.getRange(1, 1, APP_CONFIG.DEFAULT_MENU.length, APP_CONFIG.DEFAULT_MENU[0].length)
         .setValues(APP_CONFIG.DEFAULT_MENU);
       menu.setFrozenRows(1);
+    } else {
+      ensureMenuSchema_();
     }
+
+    // Pastikan key settings foto ada
+    var settingsMap = getSettingsMap_();
+    if (!('menu_photos_folder_id' in settingsMap)) setSetting_('menu_photos_folder_id', '');
+    if (!('menu_photos_folder_url' in settingsMap)) setSetting_('menu_photos_folder_url', '');
+    if (!('menu_photos_base_url' in settingsMap)) setSetting_('menu_photos_base_url', '');
 
     // Orders
     getOrCreateSheet_(APP_CONFIG.SHEETS.ORDERS, [

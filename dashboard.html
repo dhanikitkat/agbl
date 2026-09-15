@@ -118,10 +118,14 @@
           <label>Rek Permata<input id="set_rek_permata"></label>
           <label>Rek Jago<input id="set_rek_jago"></label>
           <label style="grid-column:1/-1;">QRIS URL (Drive link OK)<input id="set_qris_url"></label>
+          <label>Folder foto Drive (ID)<input id="set_menu_photos_folder_id" placeholder="ID dari /folders/XXXX"></label>
+          <label>Atau URL folder Drive<input id="set_menu_photos_folder_url" placeholder="https://drive.google.com/drive/folders/..."></label>
+          <label style="grid-column:1/-1;">Base URL website (untuk path assets/...) <input id="set_menu_photos_base_url" placeholder="https://username.github.io/agbl"></label>
         </div>
         <p class="empty" id="settingsVersionLabel"></p>
         <div class="actions">
           <button class="btn btn-primary" id="btnSaveSettings" type="button">Simpan Settings</button>
+          <button class="btn btn-secondary" id="btnSyncPhotos" type="button">Sync foto dari Drive</button>
         </div>
       </div>
 
@@ -133,6 +137,7 @@
           <label>Harga<input id="menu_price" type="number" min="0" step="500"></label>
           <label>Urutan<input id="menu_sort" type="number" min="0"></label>
           <label style="grid-column:1/-1;">Deskripsi<textarea id="menu_desc" rows="2"></textarea></label>
+          <label style="grid-column:1/-1;">Foto (path website / link Drive)<input id="menu_image" placeholder="assets/menu/m01.jpg atau link Drive"></label>
           <label>Aktif?
             <select id="menu_active">
               <option value="TRUE">Aktif</option>
@@ -146,7 +151,7 @@
         <div style="overflow-x:auto;margin-top:1rem;">
           <table class="order-table">
             <thead>
-              <tr><th>ID</th><th>Nama</th><th>Harga</th><th>Aktif</th><th>Edit</th></tr>
+              <tr><th>Foto</th><th>ID</th><th>Nama</th><th>Harga</th><th>Aktif</th><th>Edit</th></tr>
             </thead>
             <tbody id="menuAdminBody"></tbody>
           </table>

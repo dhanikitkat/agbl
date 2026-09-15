@@ -18,7 +18,7 @@ Sistem ini mengganti hardcode di `index.html` dengan **Google Sheets sebagai dat
 2. Extensions → **Apps Script**
 3. Hapus `Code.gs` default, lalu salin semua file dari folder `appscript/`:
    - `appsscript.json` (Project Settings → Show `appsscript.json`)
-   - `Config.gs`, `Sheets.gs`, `Auth.gs`, `Setup.gs`, `Code.gs`
+   - `Config.gs`, `Sheets.gs`, `Auth.gs`, `Setup.gs`, `Code.gs`, `Photos.gs`
    - HTML: `Index.html`, `Dashboard.html`, `Styles.html`, `Common.html`, `OrderApp.html`, `DashboardApp.html`
 4. Di editor Apps Script, jalankan fungsi **`setupWorkbook`** (pilih di dropdown → Run)
 5. Izinkan permission Google Sheets saat diminta
@@ -54,7 +54,28 @@ Buat sheet bernama tepat: `Settings`, `Menu`, `Orders`, `Users` lalu paste/impor
 | `rek_jago` | Bank Jago ... |
 | `qris_url` | link Drive file QRIS |
 | `wa_number` | `6282210403837` (format internasional, tanpa +) |
+| `menu_photos_folder_id` | ID folder Drive berisi foto menu |
+| `menu_photos_folder_url` | (opsional) URL folder Drive |
+| `menu_photos_base_url` | URL GitHub Pages (agar `assets/menu/...` jalan dari Apps Script) |
 | `settings_version` | auto (jangan diedit manual kecuali perlu) |
+
+### Foto menu
+
+Ada 2 cara (bisa digabung):
+
+**A. Upload ke website (GitHub Pages)**  
+1. Taruh file di `assets/menu/` dengan nama ID menu: `m01.jpg`, `m02.webp`, dst.  
+2. Isi kolom `Menu.image_url` = `assets/menu/m01.jpg` (atau kosongkan — otomatis dicari).  
+3. Commit & push. Lihat `assets/menu/README.md`.
+
+**B. Satu folder Google Drive**  
+1. Upload foto ke 1 folder Drive, nama file = ID menu (`m01.jpg`).  
+2. Share folder **Anyone with the link**.  
+3. Isi `menu_photos_folder_id` (atau URL folder).  
+4. Dashboard owner → **Sync foto dari Drive** (atau jalankan `syncMenuPhotosFromDrive`).  
+5. Kolom `image_url` terisi otomatis.
+
+Placeholder abu-abu muncul jika foto belum ada.
 
 ### QRIS dinamis
 

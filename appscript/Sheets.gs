@@ -75,7 +75,7 @@ function bumpSettingsVersion_() {
 }
 
 function getActiveMenu_() {
-  var sheet = getOrCreateSheet_(APP_CONFIG.SHEETS.MENU, ['id', 'name', 'description', 'price', 'active', 'sort_order']);
+  var sheet = ensureMenuSchema_();
   var rows = sheetToObjects_(sheet);
   return rows
     .filter(function (r) {
@@ -83,12 +83,15 @@ function getActiveMenu_() {
       return active === 'TRUE' || active === '1' || active === 'YES';
     })
     .map(function (r) {
+      var mapped = mapMenuRow_(r);
       return {
-        id: String(r.id || ''),
-        name: String(r.name || ''),
-        description: String(r.description || ''),
-        price: Number(r.price) || 0,
-        sort_order: Number(r.sort_order) || 0
+        id: mapped.id,
+        name: mapped.name,
+        description: mapped.description,
+        price: mapped.price,
+        sort_order: mapped.sort_order,
+        image_url: mapped.image_url,
+        image_src: mapped.image_src
       };
     })
     .sort(function (a, b) {
@@ -97,31 +100,17 @@ function getActiveMenu_() {
 }
 
 function getAllMenu_() {
-  var sheet = getOrCreateSheet_(APP_CONFIG.SHEETS.MENU, ['id', 'name', 'description', 'price', 'active', 'sort_order']);
-  return sheetToObjects_(sheet).map(function (r) {
-    return {
-      id: String(r.id || ''),
-      name: String(r.name || ''),
-      description: String(r.description || ''),
-      price: Number(r.price) || 0,
-      active: String(r.active).toUpperCase() === 'TRUE' || String(r.active) === '1',
-      sort_order: Number(r.sort_order) || 0,
-      _row: r._row
-    };
+  var sheet = ensureMenuSchema_();
+  return sheetToObjects_(sheet).map(mapMenuRow_).sort(function (a, b) {
+    return a.sort_order - b.sort_order;
   });
 }
 
 /**
- * Konversi link Drive view menjadi URL yang bisa di-embed sebagai gambar QRIS.
+ * Konversi link Drive view menjadi URL yang bisa di-embed sebagai gambar.
  */
 function normalizeQrisUrl_(url) {
-  if (!url) return '';
-  var s = String(url).trim();
-  var m = s.match(/\/file\/d\/([^/]+)/) || s.match(/[?&]id=([^&]+)/);
-  if (m && m[1]) {
-    return 'https://drive.google.com/uc?export=view&id=' + m[1];
-  }
-  return s;
+  return normalizeImageUrl_(url);
 }
 
 function publicSettings_() {
@@ -135,6 +124,9 @@ function publicSettings_() {
     qris_url: map.qris_url || '',
     qris_image_url: normalizeQrisUrl_(map.qris_url || ''),
     wa_number: map.wa_number || '',
+    menu_photos_folder_id: map.menu_photos_folder_id || '',
+    menu_photos_folder_url: map.menu_photos_folder_url || '',
+    menu_photos_base_url: map.menu_photos_base_url || '',
     settings_version: map.settings_version || '1'
   };
 }

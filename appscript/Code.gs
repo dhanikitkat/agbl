@@ -98,6 +98,10 @@ function handleApi_(method, params, body) {
       case 'upsertMenu':
         return upsertMenuApi_(params);
 
+      case 'syncMenuPhotos':
+        requireAuth_(params.token, ['owner']);
+        return syncMenuPhotosFromDrive();
+
       case 'getMenuAll':
         requireAuth_(params.token, ['owner']);
         return { ok: true, menu: getAllMenu_() };
@@ -243,9 +247,7 @@ function upsertMenuApi_(params) {
   if (!item.name) throw new Error('Nama menu wajib.');
 
   return withScriptLock_(function () {
-    var sheet = getOrCreateSheet_(APP_CONFIG.SHEETS.MENU, [
-      'id', 'name', 'description', 'price', 'active', 'sort_order'
-    ]);
+    var sheet = ensureMenuSchema_();
     var rows = sheetToObjects_(sheet);
     var id = String(item.id || '').trim();
     if (!id) id = 'm' + Utilities.getUuid().slice(0, 8);
@@ -264,11 +266,15 @@ function upsertMenuApi_(params) {
       String(item.description || ''),
       Number(item.price) || 0,
       item.active === false || item.active === 'FALSE' ? 'FALSE' : 'TRUE',
-      Number(item.sort_order) || 0
+      Number(item.sort_order) || 0,
+      String(item.image_url || '')
     ];
 
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var colCount = Math.max(headers.length, 7);
+
     if (found) {
-      sheet.getRange(found._row, 1, found._row, 6).setValues([values]);
+      sheet.getRange(found._row, 1, found._row, colCount).setValues([values.concat(Array(Math.max(0, colCount - values.length)).fill('')).slice(0, colCount)]);
     } else {
       sheet.appendRow(values);
     }

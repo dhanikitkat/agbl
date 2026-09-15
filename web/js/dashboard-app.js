@@ -68,17 +68,20 @@
   function fillSettingsForm(s) {
     settings = s || {};
     settingsVersion = String(s.settings_version || '1');
-    ['store_name', 'wa_number', 'wallet_number', 'rek_mandiri', 'rek_permata', 'rek_jago', 'qris_url'].forEach(function (k) {
+    ['store_name', 'wa_number', 'wallet_number', 'rek_mandiri', 'rek_permata', 'rek_jago', 'qris_url', 'menu_photos_folder_id', 'menu_photos_folder_url', 'menu_photos_base_url'].forEach(function (k) {
       var el = document.getElementById('set_' + k);
       if (el) el.value = s[k] || '';
     });
+    AGBL.assetsBase = s.menu_photos_base_url || (window.APP_CONFIG && window.APP_CONFIG.ASSETS_BASE_URL) || '';
     document.getElementById('settingsVersionLabel').textContent = 'Versi settings: ' + settingsVersion;
   }
 
   function renderMenuAdmin(list) {
     var body = document.getElementById('menuAdminBody');
     body.innerHTML = (list || []).map(function (m) {
+      var thumb = AGBL.resolveMenuImage(m) || AGBL.placeholderPhoto;
       return '<tr>' +
+        '<td><img src="' + thumb + '" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid var(--line);" onerror="this.src=\'' + AGBL.placeholderPhoto + '\'"></td>' +
         '<td>' + m.id + '</td>' +
         '<td>' + m.name + '</td>' +
         '<td>' + money(m.price) + '</td>' +
@@ -97,6 +100,7 @@
         document.getElementById('menu_sort').value = m.sort_order;
         document.getElementById('menu_desc').value = m.description || '';
         document.getElementById('menu_active').value = m.active ? 'TRUE' : 'FALSE';
+        document.getElementById('menu_image').value = m.image_url || '';
         showTab('menu');
       });
     });
@@ -108,7 +112,13 @@
     activeMenu.forEach(function (item) {
       var card = document.createElement('article');
       card.className = 'menu-card';
-      card.innerHTML = '<h3></h3><p></p><div class="price"></div><button class="btn btn-primary btn-sm" type="button">+ Tambah</button>';
+      card.innerHTML =
+        '<div class="menu-photo is-placeholder"><img alt="" loading="lazy"></div>' +
+        '<div class="menu-card-body">' +
+          '<h3></h3><p></p><div class="price"></div>' +
+          '<button class="btn btn-primary btn-sm" type="button">+ Tambah</button>' +
+        '</div>';
+      AGBL.bindMenuPhoto(card.querySelector('img'), item);
       card.querySelector('h3').textContent = item.name;
       card.querySelector('p').textContent = item.description || '—';
       card.querySelector('.price').textContent = money(item.price);
@@ -254,7 +264,7 @@
 
     document.getElementById('btnSaveSettings').onclick = function () {
       var updates = {};
-      ['store_name', 'wa_number', 'wallet_number', 'rek_mandiri', 'rek_permata', 'rek_jago', 'qris_url'].forEach(function (k) {
+      ['store_name', 'wa_number', 'wallet_number', 'rek_mandiri', 'rek_permata', 'rek_jago', 'qris_url', 'menu_photos_folder_id', 'menu_photos_folder_url', 'menu_photos_base_url'].forEach(function (k) {
         updates[k] = document.getElementById('set_' + k).value.trim();
       });
       AGBL.api('updateSettings', {
@@ -273,6 +283,22 @@
       });
     };
 
+    var syncBtn = document.getElementById('btnSyncPhotos');
+    if (syncBtn) {
+      syncBtn.onclick = function () {
+        syncBtn.disabled = true;
+        AGBL.api('syncMenuPhotos', {}, { auth: true }).then(function (res) {
+          if (!res.ok) throw new Error(res.error || 'Sync gagal');
+          AGBL.toast(res.message || ('Sync OK: ' + res.matched + ' foto'), 'ok');
+          return refreshAll();
+        }).catch(function (err) {
+          AGBL.toast(err.message || 'Sync foto gagal', 'err');
+        }).finally(function () {
+          syncBtn.disabled = false;
+        });
+      };
+    }
+
     document.getElementById('btnUpsertMenu').onclick = function () {
       var item = {
         id: document.getElementById('menu_id').value.trim(),
@@ -280,7 +306,8 @@
         description: document.getElementById('menu_desc').value.trim(),
         price: Number(document.getElementById('menu_price').value) || 0,
         sort_order: Number(document.getElementById('menu_sort').value) || 0,
-        active: document.getElementById('menu_active').value === 'TRUE'
+        active: document.getElementById('menu_active').value === 'TRUE',
+        image_url: document.getElementById('menu_image').value.trim()
       };
       if (!item.name) return AGBL.toast('Nama menu wajib.', 'warn');
       AGBL.api('upsertMenu', { item: item }, { auth: true }).then(function (res) {
