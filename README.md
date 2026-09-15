@@ -13,7 +13,8 @@ Website order makanan yang sebelumnya hardcode di HTML, sekarang terhubung ke **
 
 ## Mulai cepat
 
-Baca panduan lengkap: **[docs/SETUP.md](docs/SETUP.md)**
+Baca panduan lengkap: **[docs/SETUP.md](docs/SETUP.md)**  
+Deploy ke spreadsheet Bu Leny: **[docs/DEPLOY-SHEET.md](docs/DEPLOY-SHEET.md)**
 
 Ringkas:
 
