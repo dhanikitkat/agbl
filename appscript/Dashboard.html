@@ -14,8 +14,11 @@
   <div class="app-shell">
     <div class="topbar">
       <div class="brand-block">
-        <h1 class="brand-name" id="dashBrand">Dashboard</h1>
-        <p class="brand-sub" id="dashSub">Login owner / kasir</p>
+        <img class="brand-logo" id="storeLogo" src="assets/brand/logo.jpg" alt="Logo" width="96" height="96">
+        <div class="brand-copy">
+          <h1 class="brand-name" id="dashBrand">Dashboard</h1>
+          <p class="brand-sub" id="dashSub">Login owner / kasir</p>
+        </div>
       </div>
       <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
         <div class="status-pill offline" id="netStatus">
@@ -114,6 +117,7 @@
         <div class="form-grid">
           <label>Nama Toko<input id="set_store_name"></label>
           <label>WhatsApp (62...)<input id="set_wa_number"></label>
+          <label style="grid-column:1/-1;">Logo URL (path website / link Drive)<input id="set_logo_url" placeholder="assets/brand/logo.jpg atau link Drive"></label>
           <label>Wallet / E-wallet<input id="set_wallet_number"></label>
           <label>Rek Mandiri<input id="set_rek_mandiri"></label>
           <label>Rek Permata<input id="set_rek_permata"></label>

@@ -52,6 +52,8 @@
         ok: true,
         settings: {
           store_name: 'Ayam Gepuk Bu Leny',
+          logo_url: 'assets/brand/logo.jpg',
+          logo_image_url: 'assets/brand/logo.jpg',
           wallet_number: '082210403837 (DANA/Gopay/Shopeepay)',
           rek_mandiri: 'Bank Mandiri 1234567890 (a/n. Muhammad Ramdhani)',
           rek_permata: 'Bank Permata 1234567890 (a/n. Muhammad Ramdhani)',
@@ -332,7 +334,7 @@
         if (primary) candidates.push(primary);
         var id = String((item && item.id) || '').trim();
         if (id) {
-          ['.webp', '.png', '.jpeg', '.jpg'].forEach(function (ext) {
+          ['.webp', '.png', '.jpeg', '.jpg', '.svg'].forEach(function (ext) {
             var p = AGBL.withAssetsBase('assets/menu/' + id + ext);
             if (candidates.indexOf(p) === -1) candidates.push(p);
           });
@@ -357,6 +359,37 @@
           imgEl.alt = (item && item.name) || 'Foto menu';
         }
         tryNext();
+      },
+      resolveLogo: function (settings) {
+        settings = settings || {};
+        var raw = String(settings.logo_image_url || settings.logo_url || '').trim();
+        if (raw) {
+          var drive = String(raw).match(/\/file\/d\/([^/]+)/) || String(raw).match(/[?&]id=([^&]+)/);
+          if (drive && drive[1] && /drive\.google|docs\.google/.test(raw)) {
+            return 'https://drive.google.com/uc?export=view&id=' + drive[1];
+          }
+          return AGBL.withAssetsBase(raw);
+        }
+        return AGBL.withAssetsBase('assets/brand/logo.jpg');
+      },
+      bindBrandLogo: function (imgEl, settings) {
+        if (!imgEl) return;
+        var src = AGBL.resolveLogo(settings);
+        imgEl.classList.remove('is-missing');
+        imgEl.onerror = function () {
+          // fallback lokal
+          if (imgEl.dataset.triedLocal) {
+            imgEl.classList.add('is-missing');
+            return;
+          }
+          imgEl.dataset.triedLocal = '1';
+          imgEl.src = AGBL.withAssetsBase('assets/brand/logo.jpg');
+        };
+        imgEl.onload = function () {
+          imgEl.classList.remove('is-missing');
+        };
+        imgEl.alt = (settings && settings.store_name) || 'Logo toko';
+        imgEl.src = src;
       }
     };
   })(window);

@@ -31,6 +31,7 @@ function setupWorkbook() {
     if (!('menu_photos_folder_id' in settingsMap)) setSetting_('menu_photos_folder_id', '');
     if (!('menu_photos_folder_url' in settingsMap)) setSetting_('menu_photos_folder_url', '');
     if (!('menu_photos_base_url' in settingsMap)) setSetting_('menu_photos_base_url', '');
+    if (!('logo_url' in settingsMap)) setSetting_('logo_url', 'assets/brand/logo.jpg');
 
     // Orders
     getOrCreateSheet_(APP_CONFIG.SHEETS.ORDERS, [

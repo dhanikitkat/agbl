@@ -18,6 +18,7 @@ var APP_CONFIG = {
   DEFAULT_SETTINGS: [
     ['setting_key', 'setting_value'],
     ['store_name', 'Ayam Gepuk Bu Leny'],
+    ['logo_url', 'assets/brand/logo.jpg'],
     ['wallet_number', '082210403837 (DANA/Gopay/Shopeepay)'],
     ['rek_mandiri', 'Bank Mandiri 1234567890 (a/n. Muhammad Ramdhani)'],
     ['rek_permata', 'Bank Permata 1234567890 (a/n. Muhammad Ramdhani)'],

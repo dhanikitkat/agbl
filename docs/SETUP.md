@@ -48,6 +48,7 @@ Buat sheet bernama tepat: `Settings`, `Menu`, `Orders`, `Users` lalu paste/impor
 | key | contoh |
 |---|---|
 | `store_name` | Ayam Gepuk Bu Leny |
+| `logo_url` | `assets/brand/logo.jpg` atau link Drive logo |
 | `wallet_number` | 082210403837 (DANA/Gopay/Shopeepay) |
 | `rek_mandiri` | Bank Mandiri ... |
 | `rek_permata` | Bank Permata ... |

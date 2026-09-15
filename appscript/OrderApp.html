@@ -14,6 +14,7 @@
     pabrikField: document.getElementById('pabrikField'),
     pabrikName: document.getElementById('pabrikName'),
     storeName: document.getElementById('storeName'),
+    storeLogo: document.getElementById('storeLogo'),
     paymentLines: document.getElementById('paymentLines'),
     qrisWrap: document.getElementById('qrisWrap'),
     qrisImage: document.getElementById('qrisImage')
@@ -231,11 +232,13 @@
     }).join('');
     var pay = paymentText().map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('');
     var qris = settings.qris_image_url || AGBL.normalizeQris(settings.qris_url || '');
+    var logo = AGBL.resolveLogo(settings);
     var qrisHtml = qris ? '<div style="margin-top:12px;"><img src="' + escapeHtml(qris) + '" style="width:180px;"/></div>' : '';
+    var logoHtml = logo ? '<img src="' + escapeHtml(logo) + '" alt="logo" style="width:72px;height:72px;border-radius:50%;object-fit:cover;"/>' : '';
     var html = '<html><head><title>Nota ' + escapeHtml(settings.store_name || '') + '</title>' +
       '<style>body{font-family:Manrope,sans-serif;padding:24px}table{border-collapse:collapse;width:100%}' +
-      'th,td{border:1px solid #333;padding:8px;text-align:left}h2{font-family:Fraunces,serif}</style></head><body>' +
-      '<h2>Nota Pembayaran ' + escapeHtml(settings.store_name || '') + '</h2>' +
+      'th,td{border:1px solid #333;padding:8px;text-align:left}h2{font-family:Fraunces,serif}.nota-brand{display:flex;align-items:center;gap:12px;margin-bottom:12px}</style></head><body>' +
+      '<div class="nota-brand">' + logoHtml + '<h2 style="margin:0">Nota Pembayaran ' + escapeHtml(settings.store_name || '') + '</h2></div>' +
       '<p>Nama: <b>' + escapeHtml(els.customerName.value.trim()) + '</b></p>' +
       '<p><b>' + escapeHtml(customerTypeLabel()) + '</b></p>' +
       '<p>Tanggal: ' + escapeHtml(ts) + '</p>' +
@@ -287,6 +290,7 @@
     AGBL.assetsBase = settings.menu_photos_base_url || (window.APP_CONFIG && window.APP_CONFIG.ASSETS_BASE_URL) || '';
     els.storeName.textContent = settings.store_name || 'Toko';
     document.title = 'Order · ' + (settings.store_name || 'Menu');
+    AGBL.bindBrandLogo(els.storeLogo, settings);
     renderMenu();
     renderPayment();
   }

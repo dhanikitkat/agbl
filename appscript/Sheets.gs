@@ -117,6 +117,8 @@ function publicSettings_() {
   var map = getSettingsMap_();
   return {
     store_name: map.store_name || 'Toko',
+    logo_url: map.logo_url || '',
+    logo_image_url: normalizeImageUrl_(map.logo_url || ''),
     wallet_number: map.wallet_number || '',
     rek_mandiri: map.rek_mandiri || '',
     rek_permata: map.rek_permata || '',
