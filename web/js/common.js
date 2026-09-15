@@ -1,0 +1,300 @@
+/** Shared client utilities for Apps Script + static mirror */
+  (function (global) {
+    var CACHE_KEY = 'agbl_bootstrap_v1';
+    var QUEUE_KEY = 'agbl_order_queue_v1';
+    var TOKEN_KEY = 'agbl_auth_token_v1';
+
+    function uuid() {
+      if (crypto && crypto.randomUUID) return crypto.randomUUID();
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0;
+        var v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    function formatCurrency(amount) {
+      return Number(amount || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+    }
+
+    function toast(message, type) {
+      var host = document.getElementById('toastHost');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'toastHost';
+        host.className = 'toast-host';
+        document.body.appendChild(host);
+      }
+      var el = document.createElement('div');
+      el.className = 'toast ' + (type || '');
+      el.textContent = message;
+      host.appendChild(el);
+      setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(8px)';
+        setTimeout(function () { el.remove(); }, 220);
+      }, 3200);
+    }
+
+    function getScriptUrl() {
+      if (global.SCRIPT_URL && String(global.SCRIPT_URL).indexOf('script.google') !== -1) {
+        return global.SCRIPT_URL;
+      }
+      if (global.APP_CONFIG && global.APP_CONFIG.SCRIPT_URL) {
+        return String(global.APP_CONFIG.SCRIPT_URL).trim();
+      }
+      return '';
+    }
+
+    function localFallbackBootstrap() {
+      return {
+        ok: true,
+        settings: {
+          store_name: 'Ayam Gepuk Bu Leny',
+          wallet_number: '082210403837 (DANA/Gopay/Shopeepay)',
+          rek_mandiri: 'Bank Mandiri 1234567890 (a/n. Muhammad Ramdhani)',
+          rek_permata: 'Bank Permata 1234567890 (a/n. Muhammad Ramdhani)',
+          rek_jago: 'Bank Jago 1234567890 (a/n. M Ramdhani)',
+          qris_url: 'https://drive.google.com/file/d/1kyqPGE6N7z-nYONurZBxQxeKikfR0pZS/view',
+          qris_image_url: 'https://drive.google.com/uc?export=view&id=1kyqPGE6N7z-nYONurZBxQxeKikfR0pZS',
+          wa_number: '6282210403837',
+          settings_version: '1'
+        },
+        menu: [
+          { id: 'm01', name: 'Nasi Tatem Dada', description: 'Nasi, Ayam Dada, Tahu, Tempe, Sambel, Lalap', price: 23000, sort_order: 1 },
+          { id: 'm02', name: 'Nasi Tatem Paha', description: 'Nasi, Ayam Paha, Tahu, Tempe, Sambel, Lalap', price: 23000, sort_order: 2 },
+          { id: 'm03', name: 'Nasi Ayam Dada', description: 'Nasi, Ayam Dada, Sambel, Lalap', price: 20000, sort_order: 3 },
+          { id: 'm04', name: 'Nasi Ayam Paha', description: 'Nasi, Ayam Paha, Sambel, Lalap', price: 20000, sort_order: 4 },
+          { id: 'm05', name: 'Ayam Dada', description: 'Ayam Dada, Sambel, Lalap', price: 17000, sort_order: 5 },
+          { id: 'm06', name: 'Ayam Paha', description: 'Ayam Paha, Sambel, Lalap', price: 17000, sort_order: 6 },
+          { id: 'm07', name: 'Paket Tatem', description: '2 Tahu, 2 Tempe, Sambel', price: 7000, sort_order: 7 },
+          { id: 'm08', name: 'Nasi', description: 'Nasi 1 Porsi', price: 4000, sort_order: 8 },
+          { id: 'm09', name: 'Nasi ½ Porsi', description: 'Nasi ½ Porsi', price: 3000, sort_order: 9 },
+          { id: 'm10', name: 'Extra Sambal Terasi', description: 'Sambal Terasi 1 Porsi', price: 5000, sort_order: 10 },
+          { id: 'm11', name: 'Extra Sambal Gepuk', description: 'Sambal Gepuk 1 Porsi', price: 5000, sort_order: 11 },
+          { id: 'm12', name: 'Sayur Asem 1 Porsi', description: 'Seporsi Sayur Asem', price: 7000, sort_order: 12 },
+          { id: 'm13', name: 'Sayur Asem ½ Porsi', description: 'Setengah Porsi Sayur Asem', price: 4000, sort_order: 13 },
+          { id: 'm14', name: 'Tahu', description: '', price: 2000, sort_order: 14 },
+          { id: 'm15', name: 'Tempe', description: '', price: 1500, sort_order: 15 },
+          { id: 'm16', name: 'Es Teh Manis', description: '', price: 4000, sort_order: 16 },
+          { id: 'm17', name: 'Kerupuk', description: '', price: 1000, sort_order: 17 }
+        ],
+        server_time: new Date().toISOString(),
+        local_fallback: true
+      };
+    }
+
+    function isOnline() {
+      return navigator.onLine !== false;
+    }
+
+    function setOnlineUI(online) {
+      var pill = document.getElementById('netStatus');
+      if (!pill) return;
+      pill.classList.toggle('online', online);
+      pill.classList.toggle('offline', !online);
+      var label = document.getElementById('netStatusLabel');
+      if (label) label.textContent = online ? 'Online' : 'Offline';
+    }
+
+    function readCache() {
+      try {
+        return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function writeCache(data) {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        saved_at: Date.now(),
+        data: data
+      }));
+    }
+
+    function readQueue() {
+      try {
+        return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function writeQueue(items) {
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(items || []));
+      updateSyncBanner();
+    }
+
+    function updateSyncBanner() {
+      var banner = document.getElementById('syncBanner');
+      if (!banner) return;
+      var q = readQueue();
+      if (q.length) {
+        banner.classList.add('show');
+        banner.textContent = q.length + ' pesanan menunggu sinkronisasi. Akan dikirim otomatis saat online.';
+      } else {
+        banner.classList.remove('show');
+      }
+    }
+
+    function api(action, payload, options) {
+      options = options || {};
+      var url = getScriptUrl();
+      if (!url) {
+        if (action === 'bootstrap' || action === 'ping') {
+          return Promise.resolve(action === 'ping'
+            ? { ok: true, ts: new Date().toISOString(), online: true, local: true }
+            : localFallbackBootstrap());
+        }
+        return Promise.reject(new Error('SCRIPT_URL belum di-set. Deploy Apps Script dulu (docs/SETUP.md).'));
+      }
+      var body = Object.assign({ action: action }, payload || {});
+      if (options.auth) {
+        body.token = localStorage.getItem(TOKEN_KEY) || '';
+      }
+
+      // Apps Script web app redirects; follow redirects with fetch
+      return fetch(url, {
+        method: 'POST',
+        // text/plain avoids preflight CORS issues with Apps Script
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(body),
+        redirect: 'follow'
+      }).then(function (res) {
+        return res.text().then(function (text) {
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            throw new Error('Respons server tidak valid.');
+          }
+        });
+      });
+    }
+
+    function loadBootstrap() {
+      var cached = readCache();
+      var url = getScriptUrl();
+
+      if (!url) {
+        var local = localFallbackBootstrap();
+        writeCache(local);
+        setOnlineUI(isOnline());
+        return Promise.resolve({ fromCache: false, data: local });
+      }
+
+      if (!isOnline()) {
+        if (cached && cached.data) {
+          setOnlineUI(false);
+          return Promise.resolve({ fromCache: true, data: cached.data });
+        }
+        var fb = localFallbackBootstrap();
+        setOnlineUI(false);
+        return Promise.resolve({ fromCache: true, data: fb });
+      }
+
+      return api('bootstrap', {}).then(function (res) {
+        if (!res.ok) throw new Error(res.error || 'Gagal memuat data');
+        writeCache(res);
+        setOnlineUI(true);
+        return { fromCache: false, data: res };
+      }).catch(function (err) {
+        if (cached && cached.data) {
+          setOnlineUI(false);
+          toast('Mode offline: memakai data tersimpan.', 'warn');
+          return { fromCache: true, data: cached.data };
+        }
+        var fallback = localFallbackBootstrap();
+        setOnlineUI(false);
+        toast('Server belum siap. Memakai data lokal sementara.', 'warn');
+        return { fromCache: true, data: fallback };
+      });
+    }
+
+    function enqueueOrder(order) {
+      var q = readQueue();
+      q.push(order);
+      writeQueue(q);
+    }
+
+    function flushQueue() {
+      if (!isOnline()) return Promise.resolve({ flushed: 0 });
+      var q = readQueue();
+      if (!q.length) return Promise.resolve({ flushed: 0 });
+
+      var remaining = [];
+      var chain = Promise.resolve();
+      var flushed = 0;
+
+      q.forEach(function (item) {
+        chain = chain.then(function () {
+          return api('createOrder', item).then(function (res) {
+            if (res && res.ok) {
+              flushed += 1;
+            } else {
+              remaining.push(item);
+            }
+          }).catch(function () {
+            remaining.push(item);
+          });
+        });
+      });
+
+      return chain.then(function () {
+        writeQueue(remaining);
+        if (flushed) toast(flushed + ' pesanan offline berhasil disinkronkan.', 'ok');
+        return { flushed: flushed, remaining: remaining.length };
+      });
+    }
+
+    function bindNetwork() {
+      setOnlineUI(isOnline());
+      updateSyncBanner();
+      window.addEventListener('online', function () {
+        setOnlineUI(true);
+        toast('Koneksi kembali. Menyinkronkan...', 'ok');
+        flushQueue();
+      });
+      window.addEventListener('offline', function () {
+        setOnlineUI(false);
+        toast('Anda offline. Pesanan akan diantrekan.', 'warn');
+      });
+      // Soft heartbeat
+      setInterval(function () {
+        if (!isOnline()) return;
+        api('ping', {}).then(function () {
+          setOnlineUI(true);
+          flushQueue();
+        }).catch(function () {
+          setOnlineUI(false);
+        });
+      }, 30000);
+    }
+
+    function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+    function setToken(t) {
+      if (t) localStorage.setItem(TOKEN_KEY, t);
+      else localStorage.removeItem(TOKEN_KEY);
+    }
+
+    global.AGBL = {
+      uuid: uuid,
+      formatCurrency: formatCurrency,
+      toast: toast,
+      api: api,
+      loadBootstrap: loadBootstrap,
+      enqueueOrder: enqueueOrder,
+      flushQueue: flushQueue,
+      bindNetwork: bindNetwork,
+      getToken: getToken,
+      setToken: setToken,
+      readQueue: readQueue,
+      updateSyncBanner: updateSyncBanner,
+      isOnline: isOnline,
+      normalizeQris: function (url) {
+        if (!url) return '';
+        var m = String(url).match(/\/file\/d\/([^/]+)/) || String(url).match(/[?&]id=([^&]+)/);
+        if (m && m[1]) return 'https://drive.google.com/uc?export=view&id=' + m[1];
+        return url;
+      }
+    };
+  })(window);

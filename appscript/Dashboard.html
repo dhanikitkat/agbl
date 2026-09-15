@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Toko</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <?!= include('Styles'); ?>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="topbar">
+      <div class="brand-block">
+        <h1 class="brand-name" id="dashBrand">Dashboard</h1>
+        <p class="brand-sub" id="dashSub">Login owner / kasir</p>
+      </div>
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+        <div class="status-pill offline" id="netStatus">
+          <span class="status-dot"></span>
+          <span id="netStatusLabel">Cek koneksi...</span>
+        </div>
+        <div class="nav-links">
+          <a class="btn btn-ghost btn-sm" href="<?= SCRIPT_URL ?>">Ke Halaman Order</a>
+          <button class="btn btn-secondary btn-sm hidden" id="btnLogout" type="button">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sync-banner" id="syncBanner"></div>
+
+    <section class="panel login-wrap" id="loginPanel">
+      <h2 class="section-title">Masuk</h2>
+      <p class="brand-sub" style="margin-bottom:1rem;">Default setup: owner/owner123 atau kasir/kasir123 — ganti segera.</p>
+      <div class="form-grid" style="grid-template-columns:1fr;">
+        <label>
+          Username
+          <input id="loginUser" autocomplete="username">
+        </label>
+        <label>
+          Password
+          <input id="loginPass" type="password" autocomplete="current-password">
+        </label>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="btnLogin" type="button">Login</button>
+      </div>
+    </section>
+
+    <section id="appPanel" class="hidden">
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="overview" type="button">Performa</button>
+        <button class="tab" data-tab="orders" type="button">Pesanan</button>
+        <button class="tab" data-tab="pos" type="button">Kasir Cepat</button>
+        <button class="tab owner-only hidden" data-tab="settings" type="button">Settings</button>
+        <button class="tab owner-only hidden" data-tab="menu" type="button">Menu</button>
+      </div>
+
+      <div id="tab-overview" class="panel">
+        <h2 class="section-title">Performa Toko</h2>
+        <div class="stats-grid" id="statsGrid"></div>
+        <p class="empty">Data diambil dari sheet Orders. Cocok untuk pantauan harian owner/kasir.</p>
+      </div>
+
+      <div id="tab-orders" class="panel hidden">
+        <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.75rem;">
+          <h2 class="section-title" style="margin:0;">Pesanan Terbaru</h2>
+          <button class="btn btn-secondary btn-sm" id="btnRefreshOrders" type="button">Refresh</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="order-table">
+            <thead>
+              <tr>
+                <th>Waktu</th>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Oleh</th>
+              </tr>
+            </thead>
+            <tbody id="ordersBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="tab-pos" class="panel hidden">
+        <h2 class="section-title">Kasir Cepat</h2>
+        <p class="brand-sub" style="margin-bottom:1rem;">Buat pesanan sebagai kasir/owner (langsung ke database + offline queue).</p>
+        <div class="menu-grid" id="posMenu"></div>
+        <div class="form-grid">
+          <label>Nama Customer<input id="posCustomer"></label>
+          <label>Jenis
+            <select id="posType">
+              <option value="perorangan">Perorangan</option>
+              <option value="pabrik">Pabrik</option>
+            </select>
+          </label>
+          <label id="posPabrikField" class="hidden">Nama Pabrik<input id="posPabrik"></label>
+        </div>
+        <div id="posCart" class="empty">Keranjang kosong.</div>
+        <div class="grand-total"><span>Total</span><span id="posTotal">Rp 0</span></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="btnPosSave" type="button">Simpan Pesanan</button>
+          <button class="btn btn-ghost" id="btnPosClear" type="button">Kosongkan</button>
+        </div>
+      </div>
+
+      <div id="tab-settings" class="panel hidden owner-only">
+        <h2 class="section-title">Settings Toko</h2>
+        <p class="brand-sub" style="margin-bottom:1rem;">Optimistic locking via settings_version — jika bentrok, muat ulang.</p>
+        <div class="form-grid">
+          <label>Nama Toko<input id="set_store_name"></label>
+          <label>WhatsApp (62...)<input id="set_wa_number"></label>
+          <label>Wallet / E-wallet<input id="set_wallet_number"></label>
+          <label>Rek Mandiri<input id="set_rek_mandiri"></label>
+          <label>Rek Permata<input id="set_rek_permata"></label>
+          <label>Rek Jago<input id="set_rek_jago"></label>
+          <label style="grid-column:1/-1;">QRIS URL (Drive link OK)<input id="set_qris_url"></label>
+        </div>
+        <p class="empty" id="settingsVersionLabel"></p>
+        <div class="actions">
+          <button class="btn btn-primary" id="btnSaveSettings" type="button">Simpan Settings</button>
+        </div>
+      </div>
+
+      <div id="tab-menu" class="panel hidden owner-only">
+        <h2 class="section-title">Kelola Menu</h2>
+        <div class="form-grid">
+          <label>ID (kosongkan = baru)<input id="menu_id" placeholder="otomatis"></label>
+          <label>Nama<input id="menu_name"></label>
+          <label>Harga<input id="menu_price" type="number" min="0" step="500"></label>
+          <label>Urutan<input id="menu_sort" type="number" min="0"></label>
+          <label style="grid-column:1/-1;">Deskripsi<textarea id="menu_desc" rows="2"></textarea></label>
+          <label>Aktif?
+            <select id="menu_active">
+              <option value="TRUE">Aktif</option>
+              <option value="FALSE">Nonaktif</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="btnUpsertMenu" type="button">Simpan Menu</button>
+        </div>
+        <div style="overflow-x:auto;margin-top:1rem;">
+          <table class="order-table">
+            <thead>
+              <tr><th>ID</th><th>Nama</th><th>Harga</th><th>Aktif</th><th>Edit</th></tr>
+            </thead>
+            <tbody id="menuAdminBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast-host" id="toastHost"></div>
+  <script>
+    window.SCRIPT_URL = <?= JSON.stringify(SCRIPT_URL) ?>;
+  </script>
+  <?!= include('Common'); ?>
+  <?!= include('DashboardApp'); ?>
+</body>
+</html>

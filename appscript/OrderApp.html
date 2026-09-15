@@ -1,0 +1,314 @@
+<script>
+(function () {
+  var settings = {};
+  var menu = [];
+  var orders = [];
+
+  var els = {
+    menuCards: document.getElementById('menuCards'),
+    orderTable: document.getElementById('orderTable'),
+    emptyOrder: document.getElementById('emptyOrder'),
+    grandTotal: document.getElementById('grandTotal'),
+    customerName: document.getElementById('customerName'),
+    customerType: document.getElementById('customerType'),
+    pabrikField: document.getElementById('pabrikField'),
+    pabrikName: document.getElementById('pabrikName'),
+    storeName: document.getElementById('storeName'),
+    paymentLines: document.getElementById('paymentLines'),
+    qrisWrap: document.getElementById('qrisWrap'),
+    qrisImage: document.getElementById('qrisImage')
+  };
+
+  function money(n) { return 'Rp ' + AGBL.formatCurrency(n); }
+
+  function togglePabrik() {
+    var isPabrik = els.customerType.value === 'pabrik';
+    els.pabrikField.classList.toggle('hidden', !isPabrik);
+    if (!isPabrik) {
+      els.pabrikName.value = '';
+      els.pabrikName.classList.remove('is-invalid');
+    }
+  }
+
+  function validateForm() {
+    var ok = true;
+    els.customerName.classList.toggle('is-invalid', !els.customerName.value.trim());
+    if (!els.customerName.value.trim()) ok = false;
+
+    if (els.customerType.value === 'pabrik') {
+      els.pabrikName.classList.toggle('is-invalid', !els.pabrikName.value.trim());
+      if (!els.pabrikName.value.trim()) ok = false;
+    } else {
+      els.pabrikName.classList.remove('is-invalid');
+    }
+
+    if (!orders.length) {
+      AGBL.toast('Minimal pilih satu menu.', 'warn');
+      ok = false;
+    }
+    return ok;
+  }
+
+  function calcTotal() {
+    return orders.reduce(function (s, o) { return s + o.price * o.quantity; }, 0);
+  }
+
+  function renderMenu() {
+    els.menuCards.innerHTML = '';
+    if (!menu.length) {
+      els.menuCards.innerHTML = '<div class="empty">Menu kosong. Isi sheet Menu atau jalankan setupWorkbook.</div>';
+      return;
+    }
+    menu.forEach(function (item) {
+      var card = document.createElement('article');
+      card.className = 'menu-card';
+      card.innerHTML =
+        '<h3></h3>' +
+        '<p></p>' +
+        '<div class="price"></div>' +
+        '<button class="btn btn-primary btn-sm" type="button">+ Tambah</button>';
+      card.querySelector('h3').textContent = item.name;
+      card.querySelector('p').textContent = item.description || '—';
+      card.querySelector('.price').textContent = money(item.price);
+      card.querySelector('button').addEventListener('click', function () {
+        addToOrder(item.name, item.price);
+      });
+      els.menuCards.appendChild(card);
+    });
+  }
+
+  function addToOrder(name, price) {
+    var existing = orders.find(function (o) { return o.name === name; });
+    if (existing) existing.quantity += 1;
+    else orders.push({ name: name, price: price, quantity: 1 });
+    renderOrder();
+  }
+
+  function renderOrder() {
+    els.orderTable.innerHTML = '';
+    els.emptyOrder.style.display = orders.length ? 'none' : 'block';
+    orders.forEach(function (order) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td></td>' +
+        '<td></td>' +
+        '<td></td>' +
+        '<td></td>' +
+        '<td><div class="qty-actions">' +
+          '<button class="btn btn-secondary btn-icon btn-sm" data-act="dec" type="button">−</button>' +
+          '<button class="btn btn-secondary btn-icon btn-sm" data-act="inc" type="button">+</button>' +
+          '<button class="btn btn-danger btn-icon btn-sm" data-act="del" type="button">×</button>' +
+        '</div></td>';
+      tr.children[0].textContent = order.name;
+      tr.children[1].textContent = money(order.price);
+      tr.children[2].textContent = order.quantity;
+      tr.children[3].textContent = money(order.price * order.quantity);
+      tr.querySelector('[data-act="dec"]').onclick = function () {
+        if (order.quantity > 1) order.quantity -= 1;
+        else orders = orders.filter(function (o) { return o.name !== order.name; });
+        renderOrder();
+      };
+      tr.querySelector('[data-act="inc"]').onclick = function () {
+        order.quantity += 1;
+        renderOrder();
+      };
+      tr.querySelector('[data-act="del"]').onclick = function () {
+        orders = orders.filter(function (o) { return o.name !== order.name; });
+        renderOrder();
+      };
+      els.orderTable.appendChild(tr);
+    });
+    els.grandTotal.textContent = money(calcTotal());
+  }
+
+  function renderPayment() {
+    var lines = [];
+    if (settings.wallet_number) lines.push(settings.wallet_number);
+    if (settings.rek_mandiri) lines.push(settings.rek_mandiri);
+    if (settings.rek_permata) lines.push(settings.rek_permata);
+    if (settings.rek_jago) lines.push(settings.rek_jago);
+    els.paymentLines.innerHTML = lines.map(function (l) {
+      return '<p>' + escapeHtml(l) + '</p>';
+    }).join('') || '<p class="empty">Belum ada info pembayaran di Settings.</p>';
+
+    var qris = settings.qris_image_url || AGBL.normalizeQris(settings.qris_url || '');
+    if (qris) {
+      els.qrisWrap.classList.remove('hidden');
+      els.qrisImage.src = qris;
+      els.qrisImage.onerror = function () {
+        els.qrisWrap.classList.add('hidden');
+        AGBL.toast('QRIS tidak bisa dimuat. Pastikan file Drive di-share Anyone with link.', 'warn');
+      };
+    } else {
+      els.qrisWrap.classList.add('hidden');
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function buildOrderPayload() {
+    return {
+      customer_name: els.customerName.value.trim(),
+      customer_type: els.customerType.value,
+      pabrik_name: els.pabrikName.value.trim(),
+      items: orders.map(function (o) {
+        return { name: o.name, quantity: o.quantity, price: o.price };
+      }),
+      idempotency_key: AGBL.uuid(),
+      source: 'web',
+      client_created_at: new Date().toISOString(),
+      created_by: 'guest'
+    };
+  }
+
+  function customerTypeLabel() {
+    return els.customerType.value === 'perorangan'
+      ? 'Perorangan'
+      : 'Pabrik ' + els.pabrikName.value.trim();
+  }
+
+  function paymentText() {
+    var lines = [];
+    if (settings.wallet_number) lines.push(settings.wallet_number);
+    if (settings.rek_mandiri) lines.push(settings.rek_mandiri);
+    if (settings.rek_permata) lines.push(settings.rek_permata);
+    if (settings.rek_jago) lines.push(settings.rek_jago);
+    return lines;
+  }
+
+  function saveOrder() {
+    if (!validateForm()) return;
+    var payload = buildOrderPayload();
+    var btn = document.getElementById('btnSaveOrder');
+    btn.disabled = true;
+
+    function done(msg, type) {
+      btn.disabled = false;
+      AGBL.toast(msg, type || 'ok');
+    }
+
+    if (!AGBL.isOnline()) {
+      AGBL.enqueueOrder(payload);
+      done('Offline: pesanan diantrekan. Akan sync otomatis.', 'warn');
+      return;
+    }
+
+    AGBL.api('createOrder', payload).then(function (res) {
+      if (!res.ok) throw new Error(res.error || 'Gagal simpan');
+      if (res.duplicate) done('Pesanan sudah tercatat sebelumnya.', 'warn');
+      else done('Tersimpan: ' + res.order_id, 'ok');
+      // Keep same idempotency if user retries immediately after success? new key next time
+    }).catch(function (err) {
+      AGBL.enqueueOrder(payload);
+      done((err && err.message) || 'Gagal online. Disimpan ke antrean offline.', 'warn');
+    }).finally(function () {
+      btn.disabled = false;
+    });
+  }
+
+  function printNota() {
+    if (!validateForm()) return;
+    var now = new Date();
+    var ts = now.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) +
+      ' ' + now.toLocaleTimeString('id-ID');
+    var rows = orders.map(function (o, i) {
+      return '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(o.name) + '</td><td>' +
+        money(o.price) + '</td><td>' + o.quantity + '</td><td>' + money(o.price * o.quantity) + '</td></tr>';
+    }).join('');
+    var pay = paymentText().map(function (l) { return '<p>' + escapeHtml(l) + '</p>'; }).join('');
+    var qris = settings.qris_image_url || AGBL.normalizeQris(settings.qris_url || '');
+    var qrisHtml = qris ? '<div style="margin-top:12px;"><img src="' + escapeHtml(qris) + '" style="width:180px;"/></div>' : '';
+    var html = '<html><head><title>Nota ' + escapeHtml(settings.store_name || '') + '</title>' +
+      '<style>body{font-family:Manrope,sans-serif;padding:24px}table{border-collapse:collapse;width:100%}' +
+      'th,td{border:1px solid #333;padding:8px;text-align:left}h2{font-family:Fraunces,serif}</style></head><body>' +
+      '<h2>Nota Pembayaran ' + escapeHtml(settings.store_name || '') + '</h2>' +
+      '<p>Nama: <b>' + escapeHtml(els.customerName.value.trim()) + '</b></p>' +
+      '<p><b>' + escapeHtml(customerTypeLabel()) + '</b></p>' +
+      '<p>Tanggal: ' + escapeHtml(ts) + '</p>' +
+      '<table><thead><tr><th>No</th><th>Menu</th><th>Harga</th><th>Qty</th><th>Total</th></tr></thead><tbody>' +
+      rows +
+      '<tr><td colspan="4"><b>Grand Total</b></td><td><b>' + money(calcTotal()) + '</b></td></tr>' +
+      '</tbody></table><div style="margin-top:16px;"><b>Pembayaran:</b>' + pay + qrisHtml + '</div></body></html>';
+
+    var w = window.open('', '_blank');
+    if (!w) {
+      AGBL.toast('Pop-up diblokir. Izinkan jendela baru untuk print.', 'warn');
+      return;
+    }
+    w.document.write(html);
+    w.document.close();
+    w.onload = function () { w.print(); };
+  }
+
+  function sendWhatsApp() {
+    if (!validateForm()) return;
+    var now = new Date();
+    var date = now.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+    var time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    var pesanan = orders.map(function (o, i) {
+      return (i + 1) + '. ' + o.name + ' | Rp' + AGBL.formatCurrency(o.price) +
+        ' | ' + o.quantity + 'pcs | Rp' + AGBL.formatCurrency(o.price * o.quantity);
+    }).join('\n');
+    var pay = paymentText().map(function (l) { return '_*' + l + '*_'; }).join('\n');
+    var message =
+      'Nama Customer: *' + els.customerName.value.trim() + '*\n' +
+      '*' + customerTypeLabel() + '*\n' +
+      '*Tanggal: ' + date + '*\n' +
+      '*Jam: ' + time + '*\n\n' +
+      'Pesanan:\n' + pesanan + '\n\n' +
+      '*Grand Total: Rp' + AGBL.formatCurrency(calcTotal()) + '*\n\n' +
+      '*_Pembayaran:_*\n' + pay;
+
+    var phone = String(settings.wa_number || '').replace(/\D/g, '');
+    if (!phone) {
+      AGBL.toast('wa_number belum diisi di Settings.', 'err');
+      return;
+    }
+    window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(message), '_blank');
+  }
+
+  function applyBootstrap(data) {
+    settings = data.settings || {};
+    menu = data.menu || [];
+    els.storeName.textContent = settings.store_name || 'Toko';
+    document.title = 'Order · ' + (settings.store_name || 'Menu');
+    renderMenu();
+    renderPayment();
+  }
+
+  function init() {
+    AGBL.bindNetwork();
+    els.customerType.addEventListener('change', togglePabrik);
+    document.getElementById('btnSaveOrder').addEventListener('click', saveOrder);
+    document.getElementById('btnPrint').addEventListener('click', printNota);
+    document.getElementById('btnWa').addEventListener('click', sendWhatsApp);
+    document.getElementById('btnClear').addEventListener('click', function () {
+      orders = [];
+      els.customerName.value = '';
+      els.pabrikName.value = '';
+      els.customerType.value = 'perorangan';
+      togglePabrik();
+      renderOrder();
+      AGBL.toast('Form direset.', 'ok');
+    });
+
+    AGBL.loadBootstrap().then(function (res) {
+      applyBootstrap(res.data);
+      if (res.fromCache) AGBL.toast('Menampilkan data cache.', 'warn');
+      AGBL.flushQueue();
+    }).catch(function (err) {
+      AGBL.toast(err.message || 'Gagal memuat menu.', 'err');
+    });
+
+    renderOrder();
+  }
+
+  init();
+})();
+</script>

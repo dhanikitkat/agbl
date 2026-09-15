@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
+  <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Menu · Ayam Gepuk Bu Leny</title>
+  <title>Order Menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="web/css/app.css">
+  <?!= include('Styles'); ?>
 </head>
 <body>
   <div class="app-shell">
@@ -22,7 +23,7 @@
           <span id="netStatusLabel">Cek koneksi...</span>
         </div>
         <div class="nav-links">
-          <a class="btn btn-ghost btn-sm" href="dashboard.html">Dashboard</a>
+          <a class="btn btn-ghost btn-sm" href="<?= SCRIPT_URL ?>?page=dashboard">Dashboard</a>
         </div>
       </div>
     </div>
@@ -94,8 +95,11 @@
   </div>
 
   <div class="toast-host" id="toastHost"></div>
-  <script src="web/config.js"></script>
-  <script src="web/js/common.js"></script>
-  <script src="web/js/order-app.js"></script>
+
+  <script>
+    window.SCRIPT_URL = <?= JSON.stringify(SCRIPT_URL) ?>;
+  </script>
+  <?!= include('Common'); ?>
+  <?!= include('OrderApp'); ?>
 </body>
 </html>
