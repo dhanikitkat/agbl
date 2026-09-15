@@ -6,7 +6,20 @@
 
 Folder ID sudah di-seed di Settings (`menu_photos_folder_id`). **Mau ganti folder?** cukup edit value di sheet `Settings` (atau Dashboard → Settings), lalu klik **Sync foto dari Drive**.
 
-## Opsi A — Manual (paling cepat, 5 menit)
+## Script ID vs link create
+
+Link seperti  
+`https://script.google.com/.../projects/create?parent=11rRX_...`  
+adalah **halaman buat project**, belum Script ID.
+
+Setelah project terbuka, Script ID ada di:
+**Project Settings (gear) → Script ID**  
+atau di URL: `/home/projects/<SCRIPT_ID>/edit`
+
+Kirim Script ID itu ke agent agar bisa `clasp push`.
+
+File baru yang wajib ikut di-copy: `Variants.gs` (+ sheet `VariantGroups` / `VariantOptions` via `setupWorkbook`).
+
 
 1. Buka [spreadsheet](https://docs.google.com/spreadsheets/d/11rRX_69jGmqu7AgKJod7yx1XXh1FvAMy8QZU149NSoY/edit)
 2. **Extensions → Apps Script**
