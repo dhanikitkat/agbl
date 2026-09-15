@@ -1,0 +1,6 @@
+id,group_id,label,price_delta,excludes,active,sort_order
+opt_terasi,g_sambel,Sambel Terasi,0,,TRUE,1
+opt_gepuk,g_sambel,Sambel Gepuk,0,,TRUE,2
+opt_x_terasi,g_extra_sambel,Extra Sambel Terasi,5000,opt_x_matah,TRUE,1
+opt_x_gepuk,g_extra_sambel,Extra Sambel Gepuk,5000,,TRUE,2
+opt_x_matah,g_extra_sambel,Sambel Matah,5000,opt_x_terasi,TRUE,3

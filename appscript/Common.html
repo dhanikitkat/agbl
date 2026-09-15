@@ -1,0 +1,397 @@
+<script>
+/** Shared client utilities for Apps Script + static mirror */
+  (function (global) {
+    var CACHE_KEY = 'agbl_bootstrap_v1';
+    var QUEUE_KEY = 'agbl_order_queue_v1';
+    var TOKEN_KEY = 'agbl_auth_token_v1';
+
+    function uuid() {
+      if (crypto && crypto.randomUUID) return crypto.randomUUID();
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0;
+        var v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    function formatCurrency(amount) {
+      return Number(amount || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+    }
+
+    function toast(message, type) {
+      var host = document.getElementById('toastHost');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'toastHost';
+        host.className = 'toast-host';
+        document.body.appendChild(host);
+      }
+      var el = document.createElement('div');
+      el.className = 'toast ' + (type || '');
+      el.textContent = message;
+      host.appendChild(el);
+      setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(8px)';
+        setTimeout(function () { el.remove(); }, 220);
+      }, 3200);
+    }
+
+    function getScriptUrl() {
+      if (global.SCRIPT_URL && String(global.SCRIPT_URL).indexOf('script.google') !== -1) {
+        return global.SCRIPT_URL;
+      }
+      if (global.APP_CONFIG && global.APP_CONFIG.SCRIPT_URL) {
+        return String(global.APP_CONFIG.SCRIPT_URL).trim();
+      }
+      return '';
+    }
+
+    function localFallbackBootstrap() {
+      return {
+        ok: true,
+        settings: {
+          store_name: 'Ayam Gepuk Bu Leny',
+          logo_url: 'assets/brand/logo.jpg',
+          logo_image_url: 'assets/brand/logo.jpg',
+          wallet_number: '082210403837 (DANA/Gopay/Shopeepay)',
+          rek_mandiri: 'Bank Mandiri 1234567890 (a/n. Muhammad Ramdhani)',
+          rek_permata: 'Bank Permata 1234567890 (a/n. Muhammad Ramdhani)',
+          rek_jago: 'Bank Jago 1234567890 (a/n. M Ramdhani)',
+          qris_url: 'https://drive.google.com/file/d/1kyqPGE6N7z-nYONurZBxQxeKikfR0pZS/view',
+          qris_image_url: 'https://drive.google.com/uc?export=view&id=1kyqPGE6N7z-nYONurZBxQxeKikfR0pZS',
+          wa_number: '6282210403837',
+          menu_photos_folder_id: '',
+          menu_photos_folder_url: '',
+          settings_version: '1'
+        },
+        menu: [
+          { id: 'm01', name: 'Nasi Tatem Dada', description: 'Nasi, Ayam Dada, Tahu, Tempe, Sambel, Lalap', price: 23000, sort_order: 1, image_url: 'assets/menu/m01.jpg' },
+          { id: 'm02', name: 'Nasi Tatem Paha', description: 'Nasi, Ayam Paha, Tahu, Tempe, Sambel, Lalap', price: 23000, sort_order: 2, image_url: 'assets/menu/m02.jpg' },
+          { id: 'm03', name: 'Nasi Ayam Dada', description: 'Nasi, Ayam Dada, Sambel, Lalap', price: 20000, sort_order: 3, image_url: 'assets/menu/m03.jpg' },
+          { id: 'm04', name: 'Nasi Ayam Paha', description: 'Nasi, Ayam Paha, Sambel, Lalap', price: 20000, sort_order: 4, image_url: 'assets/menu/m04.jpg' },
+          { id: 'm05', name: 'Ayam Dada', description: 'Ayam Dada, Sambel, Lalap', price: 17000, sort_order: 5, image_url: 'assets/menu/m05.jpg' },
+          { id: 'm06', name: 'Ayam Paha', description: 'Ayam Paha, Sambel, Lalap', price: 17000, sort_order: 6, image_url: 'assets/menu/m06.jpg' },
+          { id: 'm07', name: 'Paket Tatem', description: '2 Tahu, 2 Tempe, Sambel', price: 7000, sort_order: 7, image_url: 'assets/menu/m07.jpg' },
+          { id: 'm08', name: 'Nasi', description: 'Nasi 1 Porsi', price: 4000, sort_order: 8, image_url: 'assets/menu/m08.jpg' },
+          { id: 'm09', name: 'Nasi ½ Porsi', description: 'Nasi ½ Porsi', price: 3000, sort_order: 9, image_url: 'assets/menu/m09.jpg' },
+          { id: 'm10', name: 'Extra Sambal Terasi', description: 'Sambal Terasi 1 Porsi', price: 5000, sort_order: 10, image_url: 'assets/menu/m10.jpg' },
+          { id: 'm11', name: 'Extra Sambal Gepuk', description: 'Sambal Gepuk 1 Porsi', price: 5000, sort_order: 11, image_url: 'assets/menu/m11.jpg' },
+          { id: 'm12', name: 'Sayur Asem 1 Porsi', description: 'Seporsi Sayur Asem', price: 7000, sort_order: 12, image_url: 'assets/menu/m12.jpg' },
+          { id: 'm13', name: 'Sayur Asem ½ Porsi', description: 'Setengah Porsi Sayur Asem', price: 4000, sort_order: 13, image_url: 'assets/menu/m13.jpg' },
+          { id: 'm14', name: 'Tahu', description: '', price: 2000, sort_order: 14, image_url: 'assets/menu/m14.jpg' },
+          { id: 'm15', name: 'Tempe', description: '', price: 1500, sort_order: 15, image_url: 'assets/menu/m15.jpg' },
+          { id: 'm16', name: 'Es Teh Manis', description: '', price: 4000, sort_order: 16, image_url: 'assets/menu/m16.jpg' },
+          { id: 'm17', name: 'Kerupuk', description: '', price: 1000, sort_order: 17, image_url: 'assets/menu/m17.jpg' }
+        ],
+        server_time: new Date().toISOString(),
+        local_fallback: true,
+        variants: []
+      };
+    }
+
+    function isOnline() {
+      return navigator.onLine !== false;
+    }
+
+    function setOnlineUI(online) {
+      var pill = document.getElementById('netStatus');
+      if (!pill) return;
+      pill.classList.toggle('online', online);
+      pill.classList.toggle('offline', !online);
+      var label = document.getElementById('netStatusLabel');
+      if (label) label.textContent = online ? 'Online' : 'Offline';
+    }
+
+    function readCache() {
+      try {
+        return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function writeCache(data) {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        saved_at: Date.now(),
+        data: data
+      }));
+    }
+
+    function readQueue() {
+      try {
+        return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function writeQueue(items) {
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(items || []));
+      updateSyncBanner();
+    }
+
+    function updateSyncBanner() {
+      var banner = document.getElementById('syncBanner');
+      if (!banner) return;
+      var q = readQueue();
+      if (q.length) {
+        banner.classList.add('show');
+        banner.textContent = q.length + ' pesanan menunggu sinkronisasi. Akan dikirim otomatis saat online.';
+      } else {
+        banner.classList.remove('show');
+      }
+    }
+
+    function api(action, payload, options) {
+      options = options || {};
+      var url = getScriptUrl();
+      if (!url) {
+        if (action === 'bootstrap' || action === 'ping') {
+          return Promise.resolve(action === 'ping'
+            ? { ok: true, ts: new Date().toISOString(), online: true, local: true }
+            : localFallbackBootstrap());
+        }
+        return Promise.reject(new Error('SCRIPT_URL belum di-set. Deploy Apps Script dulu (docs/SETUP.md).'));
+      }
+      var body = Object.assign({ action: action }, payload || {});
+      if (options.auth) {
+        body.token = localStorage.getItem(TOKEN_KEY) || '';
+      }
+
+      // Apps Script web app redirects; follow redirects with fetch
+      return fetch(url, {
+        method: 'POST',
+        // text/plain avoids preflight CORS issues with Apps Script
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(body),
+        redirect: 'follow'
+      }).then(function (res) {
+        return res.text().then(function (text) {
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            throw new Error('Respons server tidak valid.');
+          }
+        });
+      });
+    }
+
+    function loadBootstrap() {
+      var cached = readCache();
+      var url = getScriptUrl();
+
+      if (!url) {
+        var local = localFallbackBootstrap();
+        writeCache(local);
+        setOnlineUI(isOnline());
+        return Promise.resolve({ fromCache: false, data: local });
+      }
+
+      if (!isOnline()) {
+        if (cached && cached.data) {
+          setOnlineUI(false);
+          return Promise.resolve({ fromCache: true, data: cached.data });
+        }
+        var fb = localFallbackBootstrap();
+        setOnlineUI(false);
+        return Promise.resolve({ fromCache: true, data: fb });
+      }
+
+      return api('bootstrap', {}).then(function (res) {
+        if (!res.ok) throw new Error(res.error || 'Gagal memuat data');
+        writeCache(res);
+        setOnlineUI(true);
+        return { fromCache: false, data: res };
+      }).catch(function (err) {
+        if (cached && cached.data) {
+          setOnlineUI(false);
+          toast('Mode offline: memakai data tersimpan.', 'warn');
+          return { fromCache: true, data: cached.data };
+        }
+        var fallback = localFallbackBootstrap();
+        setOnlineUI(false);
+        toast('Server belum siap. Memakai data lokal sementara.', 'warn');
+        return { fromCache: true, data: fallback };
+      });
+    }
+
+    function enqueueOrder(order) {
+      var q = readQueue();
+      q.push(order);
+      writeQueue(q);
+    }
+
+    function flushQueue() {
+      if (!isOnline()) return Promise.resolve({ flushed: 0 });
+      var q = readQueue();
+      if (!q.length) return Promise.resolve({ flushed: 0 });
+
+      var remaining = [];
+      var chain = Promise.resolve();
+      var flushed = 0;
+
+      q.forEach(function (item) {
+        chain = chain.then(function () {
+          return api('createOrder', item).then(function (res) {
+            if (res && res.ok) {
+              flushed += 1;
+            } else {
+              remaining.push(item);
+            }
+          }).catch(function () {
+            remaining.push(item);
+          });
+        });
+      });
+
+      return chain.then(function () {
+        writeQueue(remaining);
+        if (flushed) toast(flushed + ' pesanan offline berhasil disinkronkan.', 'ok');
+        return { flushed: flushed, remaining: remaining.length };
+      });
+    }
+
+    function bindNetwork() {
+      setOnlineUI(isOnline());
+      updateSyncBanner();
+      window.addEventListener('online', function () {
+        setOnlineUI(true);
+        toast('Koneksi kembali. Menyinkronkan...', 'ok');
+        flushQueue();
+      });
+      window.addEventListener('offline', function () {
+        setOnlineUI(false);
+        toast('Anda offline. Pesanan akan diantrekan.', 'warn');
+      });
+      // Soft heartbeat
+      setInterval(function () {
+        if (!isOnline()) return;
+        api('ping', {}).then(function () {
+          setOnlineUI(true);
+          flushQueue();
+        }).catch(function () {
+          setOnlineUI(false);
+        });
+      }, 30000);
+    }
+
+    function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+    function setToken(t) {
+      if (t) localStorage.setItem(TOKEN_KEY, t);
+      else localStorage.removeItem(TOKEN_KEY);
+    }
+
+    global.AGBL = {
+      uuid: uuid,
+      formatCurrency: formatCurrency,
+      toast: toast,
+      api: api,
+      loadBootstrap: loadBootstrap,
+      enqueueOrder: enqueueOrder,
+      flushQueue: flushQueue,
+      bindNetwork: bindNetwork,
+      getToken: getToken,
+      setToken: setToken,
+      readQueue: readQueue,
+      updateSyncBanner: updateSyncBanner,
+      isOnline: isOnline,
+      normalizeQris: function (url) {
+        if (!url) return '';
+        var m = String(url).match(/\/file\/d\/([^/]+)/) || String(url).match(/[?&]id=([^&]+)/);
+        if (m && m[1]) return 'https://drive.google.com/uc?export=view&id=' + m[1];
+        return url;
+      },
+      placeholderPhoto: 'assets/menu/_placeholder.svg',
+      assetsBase: '',
+      withAssetsBase: function (path) {
+        if (!path) return '';
+        if (/^https?:\/\//i.test(path) || path.indexOf('data:') === 0) return path;
+        var base = AGBL.assetsBase ||
+          (global.APP_CONFIG && global.APP_CONFIG.ASSETS_BASE_URL) ||
+          '';
+        if (!base) return path;
+        return String(base).replace(/\/$/, '') + '/' + String(path).replace(/^\//, '');
+      },
+      resolveMenuImage: function (item) {
+        item = item || {};
+        var raw = String(item.image_src || item.image_url || '').trim();
+        if (raw) {
+          var drive = String(raw).match(/\/file\/d\/([^/]+)/) || String(raw).match(/[?&]id=([^&]+)/);
+          if (drive && drive[1] && /drive\.google|docs\.google/.test(raw)) {
+            return 'https://drive.google.com/uc?export=view&id=' + drive[1];
+          }
+          return AGBL.withAssetsBase(raw);
+        }
+        var id = String(item.id || '').trim();
+        if (!id) return '';
+        return AGBL.withAssetsBase('assets/menu/' + id + '.jpg');
+      },
+      bindMenuPhoto: function (imgEl, item) {
+        if (!imgEl) return;
+        var wrap = imgEl.parentElement;
+        var candidates = [];
+        var primary = AGBL.resolveMenuImage(item);
+        if (primary) candidates.push(primary);
+        var id = String((item && item.id) || '').trim();
+        if (id) {
+          ['.webp', '.png', '.jpeg', '.jpg', '.svg'].forEach(function (ext) {
+            var p = AGBL.withAssetsBase('assets/menu/' + id + ext);
+            if (candidates.indexOf(p) === -1) candidates.push(p);
+          });
+        }
+        candidates.push(AGBL.withAssetsBase(AGBL.placeholderPhoto));
+
+        var idx = 0;
+        function tryNext() {
+          if (idx >= candidates.length) {
+            if (wrap) wrap.classList.add('is-placeholder');
+            return;
+          }
+          var src = candidates[idx++];
+          imgEl.onerror = tryNext;
+          imgEl.onload = function () {
+            if (wrap) {
+              var isPh = src.indexOf('_placeholder.svg') !== -1;
+              wrap.classList.toggle('is-placeholder', isPh);
+            }
+          };
+          imgEl.src = src;
+          imgEl.alt = (item && item.name) || 'Foto menu';
+        }
+        tryNext();
+      },
+      resolveLogo: function (settings) {
+        settings = settings || {};
+        var raw = String(settings.logo_image_url || settings.logo_url || '').trim();
+        if (raw) {
+          var drive = String(raw).match(/\/file\/d\/([^/]+)/) || String(raw).match(/[?&]id=([^&]+)/);
+          if (drive && drive[1] && /drive\.google|docs\.google/.test(raw)) {
+            return 'https://drive.google.com/uc?export=view&id=' + drive[1];
+          }
+          return AGBL.withAssetsBase(raw);
+        }
+        return AGBL.withAssetsBase('assets/brand/logo.jpg');
+      },
+      bindBrandLogo: function (imgEl, settings) {
+        if (!imgEl) return;
+        var src = AGBL.resolveLogo(settings);
+        imgEl.classList.remove('is-missing');
+        imgEl.onerror = function () {
+          // fallback lokal
+          if (imgEl.dataset.triedLocal) {
+            imgEl.classList.add('is-missing');
+            return;
+          }
+          imgEl.dataset.triedLocal = '1';
+          imgEl.src = AGBL.withAssetsBase('assets/brand/logo.jpg');
+        };
+        imgEl.onload = function () {
+          imgEl.classList.remove('is-missing');
+        };
+        imgEl.alt = (settings && settings.store_name) || 'Logo toko';
+        imgEl.src = src;
+      }
+    };
+  })(window);
+</script>

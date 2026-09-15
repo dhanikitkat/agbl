@@ -1,0 +1,3 @@
+id,menu_ids,label,selection_type,min_select,max_select,required,active,sort_order
+g_sambel,"m01,m02,m03,m04,m05,m06",Pilih Sambel,single,1,1,TRUE,TRUE,1
+g_extra_sambel,"m01,m02,m03,m04,m05,m06",Extra Sambel,multi,0,2,FALSE,TRUE,2
